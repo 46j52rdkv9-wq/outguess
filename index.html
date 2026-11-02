@@ -2503,7 +2503,7 @@ function showMenu() {
   fillMenu(); updateHUD(); layout();
 }
 function hideMenu() { app.classList.remove('menu-on'); $('#menu').hidden = true; layout(); }
-const goalieIQ = br => Math.round(br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total));
+const goalieIQ = br => Math.round((br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total)) / 15);
 const MENU = { res: null, count: null };
 // what it thinks its chances are next match: your recent shots against it (newer ones count more), goals it has since
 // trained a block for count as likely saves, then the odds of it reaching 10 points before you do
@@ -3478,7 +3478,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.02-1841';
+  var VERSION = '2026.11.02-2101';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess app · version ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
