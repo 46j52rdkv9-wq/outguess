@@ -2293,12 +2293,14 @@ function release(s) {
     trace: pts.map(p => ({ x: p.x, y: p.y, t: p.t })), lastDot: null, crPx: s.crPx.slice(), crSp: bandVec(s.cr, s.bf, NB).sp, commitPx: cm.px, t0: now, resolved: false };
   G.lastShotClock = G.clock;
   G.state = 'flying'; hint.textContent = ''; hideNote();
+  if (G.mode === 'online') onEarly();
   SFX.kick(); buzz(12); updateHUD();
 }
 
 function resolveShot() {
   const sh = G.shot, rec = sh.rec; sh.resolved = true;
   // on target: saved if any part of its body is touching the ball the moment it arrives
+  if (!sh.outcome && sh.pre) { sh.outcome = sh.pre.outcome; rec.gk = { gap: r3(sh.pre.gap) }; }
   if (!sh.outcome) { const D = G.dive; if (D.gap == null) { B2.advance(D.R, D.sc.rem + D.sc.flight); D.gap = MB.gap(D.R.s, D.sc.ball[0], D.sc.ball[1]); D.R.frozen = true; } sh.outcome = D.gap <= 0 ? 'saved' : 'goal'; rec.gk = { gap: r3(D.gap) }; }
   const onTarget = sh.outcome === 'goal' || sh.outcome === 'saved';
   const hit = onTarget && gdist(sh.peak.x, sh.peak.y, sh.gx, sh.gy) < READ_REACH;
@@ -2336,7 +2338,7 @@ function resolveShot() {
     : sh.outcome === 'wide' ? 'Just wide.' : 'Over the bar.';
   showBanner(good ? 'good' : 'bad', sh.outcome === 'goal' ? 'Goal!' : big, '', line);
   G.state = 'result'; G.resultUntil = performance.now() + 1900;
-  if (G.mode === 'online') onMine(sh, rec, hit);
+  if (G.mode === 'online' && !sh.sent) onMine(sh, rec, hit);
   updateHUD();
 }
 function gameOver() {
@@ -2870,11 +2872,12 @@ function packQ(q) { let m = 0; for (const v of q) m = Math.max(m, v); const u = 
 function unpackQ(o) { if (!o) return null; const b = atob(o.b), q = []; let t = 0; for (let i = 0; i < b.length; i++) { const v = b.charCodeAt(i) / 255 * o.m; q.push(v); t += v; } return q.map(v => v / (t || 1)); }
 const b64i16 = a => { const u = new Uint8Array(a.buffer); let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
 const unb64i16 = s => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return new Int16Array(u.buffer); };
-function motionPack(D) {
+function motionPack(D, ahead) {
   const tr = D.track ? D.track.slice() : [];
   tr.push([D.R.s.t, Float32Array.from(D.R.s.X), Float32Array.from(D.R.s.Y)]);
+  if (ahead) for (const f of ahead) tr.push(f);
   // a little more of the fall after the ball arrives (no more commands, the body just flows)
-  try { const R2 = { th: D.th, sc: D.sc, s: structuredClone(D.R.s), frozen: true }; for (let k = 1; k <= 21; k++) { B2.advance(R2, D.R.s.t + k / 30); tr.push([R2.s.t, Float32Array.from(R2.s.X), Float32Array.from(R2.s.Y)]); } } catch (e) {}
+  else try { const R2 = { th: D.th, sc: D.sc, s: structuredClone(D.R.s), frozen: true }; for (let k = 1; k <= 21; k++) { B2.advance(R2, D.R.s.t + k / 30); tr.push([R2.s.t, Float32Array.from(R2.s.X), Float32Array.from(R2.s.Y)]); } } catch (e) {}
   tr.sort((a, b) => a[0] - b[0]);
   const N = Math.min(150, Math.floor(tr[tr.length - 1][0] * 30) + 1), out = new Int16Array(N * 32);
   let j = 0;
@@ -2945,7 +2948,7 @@ $('#onJoin').addEventListener('click', async () => {
     onMsg(`Joined ${ON.oppName}'s match. Flipping the coin…`, 'ok');
   } catch (e) { onFail(e); }
 });
-function onReset() { Object.assign(ON, { code: null, side: null, phase: null, opp: null, oppPid: null, oppName: null, first: null, n: 0, inbox: new Map(), over: false }); G.rep = null; G.mine = false; }
+function onReset() { try { if (ON.ch && ON.sb) ON.sb.removeChannel(ON.ch); } catch (e) {} ON.ch = null; Object.assign(ON, { code: null, side: null, phase: null, opp: null, oppPid: null, oppName: null, first: null, n: 0, inbox: new Map(), over: false }); G.rep = null; G.mine = false; }
 // ---------- the match ----------
 const shooterOf = n => (n % 2 === 0) === (ON.first === 'host') ? 'host' : 'guest';
 function onStart({ oppPid, oppName, oppGoalie, first }) {
@@ -2953,6 +2956,13 @@ function onStart({ oppPid, oppName, oppGoalie, first }) {
   if (!oppGoalie || oppGoalie.b2ver !== BRAIN2_VER || oppGoalie.brains !== BRAINS_VER) { onReset(); onMsg('One of you needs to update Outguess first: open it, go to the menu and let it restart.', 'bad'); return; }
   oppGet(oppPid, oppName);
   Object.assign(ON, { phase: 'playing', opp: goalieFrom(oppGoalie), oppPid, oppName, first, n: 0, inbox: new Map(), over: false });
+  try {
+    if (ON.ch) ON.sb.removeChannel(ON.ch);
+    const mineHost = ON.side === 'host';
+    ON.ch = ON.sb.channel('match-' + ON.code, { config: { broadcast: { self: false } } })
+      .on('broadcast', { event: 'shot' }, ({ payload: r }) => { if (!r || r.by_host === mineHost || r.n < ON.n) return; ON.inbox.set(r.n, r.data); if (G.state === 'theirs' && ON.inbox.has(ON.n)) onReplayStart(ON.inbox.get(ON.n)); })
+      .subscribe();
+  } catch (e) { ON.ch = null; }
   $('#online').hidden = true; hideMenu();
   setMode('online'); B = ON.opp;
   G.iq0 = goalieIQ(MY); MENU.res = null; DEMO.cur = null;
@@ -2971,17 +2981,39 @@ function onNextTurn() {
     if (ON.inbox.has(ON.n)) onReplayStart(ON.inbox.get(ON.n));
   }
 }
+// you just let go: play the rest of the dive ahead on a copy, so the result and the whole movement go out now
+function onEarly() {
+  const sh = G.shot, D = G.dive, rec = sh && sh.rec; if (!sh || !D || !rec) return;
+  try {
+    const sc = D.sc, tA = sc.rem + sc.flight, Rc = { th: D.R.th, sc, s: structuredClone(D.R.s), frozen: D.R.frozen, plan: D.R.plan }, ahead = [];
+    for (let t = Rc.s.t + 1 / 30; t < tA; t += 1 / 30) { B2.advance(Rc, t); ahead.push([Rc.s.t, Float32Array.from(Rc.s.X), Float32Array.from(Rc.s.Y)]); }
+    B2.advance(Rc, tA); const gap = MB.gap(Rc.s, sc.ball[0], sc.ball[1]); Rc.frozen = true; ahead.push([Rc.s.t, Float32Array.from(Rc.s.X), Float32Array.from(Rc.s.Y)]);
+    for (let k = 1; k <= 21; k++) { B2.advance(Rc, tA + k / 30); ahead.push([Rc.s.t, Float32Array.from(Rc.s.X), Float32Array.from(Rc.s.Y)]); }
+    const outcome = sh.outcome || (gap <= 0 ? 'saved' : 'goal'); if (!sh.outcome) sh.pre = { outcome, gap };
+    const onT = outcome === 'goal' || outcome === 'saved', hit = onT && gdist(sh.peak.x, sh.peak.y, sh.gx, sh.gy) < READ_REACH, outNet = outcome === 'goal' ? 0 : outcome === 'saved' ? 1 : 2;
+    const r = { ...rec, out: outNet, hit: hit ? 1 : 0, w: outNet === 0 ? (gap < 0.6 ? 2 : 1.5) : outNet === 1 ? 0.8 : 1, gk: { gap: r3(gap) } };
+    onMine({ ...sh, outcome }, r, hit, ahead); sh.sent = true;
+  } catch (e) {}
+}
 // your shot is done: send it
-function onMine(sh, rec, hit) {
+function onMine(sh, rec, hit, ahead) {
   const D = G.dive, data = { v: 1, rec, pos: rec ? rec.pos : G.pos, out: sh ? sh.outcome : rec && rec.out === 3 ? 'time' : 'scuff' };
   if (sh && D) {
     const band = (rec.bf || 0.04) * H, P = sh.trace, step = Math.max(1, Math.ceil(P.length / 50)), tr = [], tt = [];
     for (let i = 0; i < P.length; i += step) { tr.push([r3((P[i].x - P[0].x) / band), r3((P[0].y - P[i].y) / band)]); tt.push(Math.round((P[i].t || 0) - (P[0].t || 0))); }
     const L = P[P.length - 1]; if ((P.length - 1) % step) { tr.push([r3((L.x - P[0].x) / band), r3((P[0].y - L.y) / band)]); tt.push(Math.round((L.t || 0) - (P[0].t || 0))); }
     Object.assign(data, { tr, tt, gx: r3(sh.gx), gy: r3(sh.gy), curve: r3(sh.curve), pw: r3(sh.pw), T: Math.round(sh.T), rem: r3(D.sc.rem || 0), q: packQ(sh.pred),
-      peak: { x: r3(sh.peak.x), y: r3(sh.peak.y), cov: r3(sh.peak.cov) }, hit: hit ? 1 : 0, bk: D.book ? 1 : 0, ...motionPack(D) });
+      peak: { x: r3(sh.peak.x), y: r3(sh.peak.y), cov: r3(sh.peak.cov) }, hit: hit ? 1 : 0, bk: D.book ? 1 : 0, ...motionPack(D, ahead) });
   }
-  ON.outbox.push({ code: ON.code, n: ON.n, by_host: ON.side === 'host', data }); ON.lastPoll = 0;
+  const row = { code: ON.code, n: ON.n, by_host: ON.side === 'host', data };
+  // pushed live to their phone straight away, and saved on the server in case the live link drops
+  try { if (ON.ch) ON.ch.send({ type: 'broadcast', event: 'shot', payload: row }); } catch (e) {}
+  ON.outbox.push(row); onFlush();
+}
+async function onFlush() {
+  if (ON.flushing || !ON.sb) return; ON.flushing = true;
+  try { while (ON.outbox.length) { const o = ON.outbox[0], { error } = await ON.sb.from('shots').insert(o); if (error && !/duplicate|unique/i.test(error.message)) break; ON.outbox.shift(); } } catch (e) {}
+  ON.flushing = false;
 }
 function onAfterResult() {
   ON.n++; $('#banner').hidden = true;
@@ -2995,7 +3027,7 @@ function onReplayStart(d) {
   G.pos = d.pos; G.posDraw = d.pos;
   const now = performance.now(), band = Math.max(26, Math.min(H * 0.045, (geo.ballY0 - geo.hb) / 10.5)), sx = ballX(d.pos), sy = geo.ballY;
   const trace = d.tr.map(([x, y], i) => ({ x: sx + x * band, y: sy - y * band, t: d.tt[i] || 0 }));
-  const t0 = now + 450, rel = t0 + Math.max(150, d.tt[d.tt.length - 1] || 300);
+  const t0 = now + 150, rel = t0 + Math.max(150, d.tt[d.tt.length - 1] || 300);
   G.rep = { d, trace, t0, rel, mo: d.mo ? unb64i16(d.mo) : null }; G.shot = null; G.dive = null;
 }
 function repPose(now) {
@@ -3059,7 +3091,7 @@ function onTick(now) {
 }
 async function onPoll() {
   const sb = ON.sb; if (!sb) return;
-  while (ON.outbox.length) { const o = ON.outbox[0], { error } = await sb.from('shots').insert(o); if (error && !/duplicate|unique/i.test(error.message)) break; ON.outbox.shift(); }
+  if (ON.outbox.length) await onFlush();
   if (ON.phase === 'hosting') {
     const { data: m } = await sb.from('matches').select('state,guest,guest_pid,guest_name,guest_goalie').eq('code', ON.code).maybeSingle();
     if (m && m.guest && m.guest_goalie && ON.phase === 'hosting') {
@@ -3848,7 +3880,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.02-2144';
+  var VERSION = '2026.11.02-2307';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess app · version ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
