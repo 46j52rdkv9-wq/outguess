@@ -1841,7 +1841,7 @@ const MY_KEY = 'outguess6', SUPER_KEY = 'outguess6s', KEEP_LOADED = 60;
 let META = MY_KEY;
 const GKEY = n => META + '.g' + n;
 const meta = store.get(META, null) || {};
-const S = { slid: meta.slid || 0, kit: meta.kit || 'classic', owned: Array.isArray(meta.owned) ? meta.owned : [], coins: meta.coins || 0, trail: meta.trail || null, devR: meta.devR || null, best: meta.best || 0, mem: meta.mem !== false, sound: meta.sound !== false, bait: !!meta.bait, superOn: false, sel: meta.sel === 'super' ? 'super' : 'mine', practice: meta.practice !== false };
+const S = { pid: meta.pid || null, name: meta.name || null, slid: meta.slid || 0, kit: meta.kit || 'classic', owned: Array.isArray(meta.owned) ? meta.owned : [], coins: meta.coins || 0, trail: meta.trail || null, devR: meta.devR || null, best: meta.best || 0, mem: meta.mem !== false, sound: meta.sound !== false, bait: !!meta.bait, superOn: false, sel: meta.sel === 'super' ? 'super' : 'mine', practice: meta.practice !== false };
 // data from earlier versions of the game is left alone (not loaded, so it can't slow anything down) until you save it or delete it
 const allKeys = () => { const ks = []; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('outguess')) ks.push(k); } } catch (e) {} return ks.sort(); };
 const oldKeys = () => allKeys().filter(k => !k.startsWith('outguess6'));
@@ -1864,7 +1864,7 @@ let MY = loadBrain(meta, MY_KEY), B = MY, SB = null;
 const brainMeta = br => ({ bp: br.bp, net: br.net, gameCount: br.gameCount, firstGame: br.firstGame, trainFrom: br.trainFrom, careerMs: Math.round(br.careerMs), log: br.log, acc: br.acc, loss: br.loss.slice(-60), total: br.total, tau: br.tau,
   m2: { ver: BRAIN2_VER, w: packW(br.m2.th), gen: br.m2.gen, hist: br.m2.hist.slice(-200), trainMs: Math.round(br.m2.trainMs), shots: br.m2.shots || 0, practice: br.m2.practice || 0 }, body: { snaps: (br.body ? br.body.snaps : []).slice(-60) }, book: br.book || [] });
 function persist() {
-  const m = { ver: 6, brains: BRAINS_VER, best: S.best, mem: S.mem, sound: S.sound, bait: S.bait, sel: S.sel, practice: S.practice, devR: S.devR, trail: S.trail, coins: S.coins, kit: S.kit, owned: S.owned, slid: S.slid };
+  const m = { ver: 6, brains: BRAINS_VER, best: S.best, mem: S.mem, sound: S.sound, bait: S.bait, sel: S.sel, practice: S.practice, devR: S.devR, trail: S.trail, coins: S.coins, kit: S.kit, owned: S.owned, slid: S.slid, pid: S.pid, name: S.name };
   if (S.mem) Object.assign(m, brainMeta(MY));
   const mine = G.mode === 'mine' && G.chunk;
   const save = () => store.set(MY_KEY, m) && (!S.mem || !mine || store.set(GKEY(G.chunk.n), G.chunk));
@@ -1876,6 +1876,8 @@ function persist() {
     store.set(SUPER_KEY, sm);
     if (G.mode === 'super' && G.chunk) store.set(SUPER_KEY + '.g' + G.chunk.n, G.chunk);
   }
+  // (the general brain and scouting files are set up a little later in loading; before that there's nothing to save)
+  if (S.mem) try { store.set(GEN_KEY, { brains: BRAINS_VER, net: packNet(GEN.net), tau: GEN.tau, steps: GEN.steps }); for (const o of OPPS.values()) if (o.dirty) oppSave(o); } catch (e) {}
   G.unsaved = 0; return ok;
 }
 function readAcc() { const l = B.log.slice(-20); if (l.length < 3) return null; return l.reduce((a, b) => a + b, 0) / l.length; }
@@ -2125,7 +2127,7 @@ function goaliePoint() { G.gk++; G.streak = 0; G.gkStreak = (G.gkStreak || 0) + 
 // every shot, timeout and scuff goes into the current match chunk
 function recordEvent(ev) {
   const c = G.chunk; c.shots.push(ev); c.score = G.score;
-  if (trainable(ev)) { B.flat.push({ c, i: c.shots.length - 1 }); if (B.flat.length > 1200) B.flat.shift(); bpTest(B, B.flat[B.flat.length - 1]); learn(B); B.total++; }
+  if (trainable(ev)) { B.flat.push({ c, i: c.shots.length - 1 }); if (B.flat.length > 1200) B.flat.shift(); bpTest(B, B.flat[B.flat.length - 1]); learn(B); B.total++; if (B === MY) genLearn(30); }
   if (ev.cr.length > 1) { G.prevEvs.unshift(ev); if (G.prevEvs.length > 3) G.prevEvs.pop(); }
   G.prevPos = ev.pos; G.lastOut = ev.out; G.events++;
   if (++G.unsaved >= 5) { persist(); G.justSaved = true; }
@@ -2397,7 +2399,7 @@ function botShot() {
   rec.out = out; rec.hit = hit ? 1 : 0; rec.w = out === 0 ? (bg != null && bg < 0.6 ? 2 : 1.5) : out === 1 ? 0.8 : 1;
   if (onT) SB.tau = clamp(SB.tau + 0.02 * (pk.cov - (hit ? 1 : 0)), 0.6, 2.5);
   if (trainable(rec)) { SB.flat.push(f); bpTest(SB, f); }
-  superLearn(24); bpTrain(SB, 6);
+  superLearn(24); bpTrain(SB, 6); genLearn(3);
   // playbook: remember what scored, fade what got saved
   if (onT) { const bk = SB.bot.book || (SB.bot.book = []), P_ = SB.bot.persona;
     if (out === 0) { bk.push({ x: rec.tx, y: rec.ty, fake: P_ ? P_.fake : 0.2, w: 1 }); if (bk.length > 60) bk.splice(0, bk.length - 60); }
@@ -2426,6 +2428,85 @@ function superTick(budget) {
   }
 }
 const superSaveRate = () => { const r = SB.bot.recent; return r.length ? r.reduce((a, b) => a + b, 0) / r.length : 0; };
+
+// ---------- WHO YOU PLAY: your player ID, a general shooter brain, and a scouting file per opponent ----------
+// Brain 1 reads one shooter. Your own Brain 1 only ever learns from you, so offline play stays exactly as sharp.
+// Each opponent gets their own Brain 1 (a scouting file), filed under their player ID. A new opponent's file starts as a
+// copy of the general Brain 1, which learns from every shot it sees (yours, every opponent's, the bots'), then tunes to them.
+// The body (Brain 2), the move library and your trained shots are shared: they're skills, not knowledge of one shooter.
+const rid = n => { const a = new Uint8Array(n); try { crypto.getRandomValues(a); } catch (e) { for (let i = 0; i < n; i++) a[i] = Math.random() * 256; } return Array.from(a, b => 'abcdefghjkmnpqrstuvwxyz23456789'[b % 31]).join(''); };
+if (!S.pid) { S.pid = 'p_' + rid(12); S.name = 'Player ' + rid(4).toUpperCase(); }
+const GEN_KEY = MY_KEY + '.gen', OPP_KEY = MY_KEY + '.opp.', OPPS_KEY = MY_KEY + '.opps';
+const cloneJ = v => JSON.parse(JSON.stringify(v));
+// weights travel and get stored as packed binary (about a third of the size of plain text)
+const packNet = n => n && !n.pk ? { pk: packW([].concat(...n.w1, n.b1, ...n.w2, n.b2)) } : n;
+function unpackNet(d) {
+  if (!d || !d.pk) return d;
+  const f = unpackW(d.pk); let o = 0; const take = k => Array.from(f.subarray(o, o += k));
+  const w1 = []; for (let i = 0; i < N_H; i++) w1.push(take(N_IN)); const b1 = take(N_H);
+  const w2 = []; for (let k = 0; k < N_OUT; k++) w2.push(take(N_H)); return { w1, b1, w2, b2: take(N_OUT) };
+}
+const packFlat = o => { const r = {}; for (const [k, v] of Object.entries(o || {})) r[k] = Array.isArray(v) && v.length > 16 && typeof v[0] === 'number' ? { f32: packW(v) } : v; return r; };
+const unpackFlat = o => { const r = {}; for (const [k, v] of Object.entries(o || {})) r[k] = v && v.f32 ? Array.from(unpackW(v.f32)) : v; return r; };
+let GEN = (() => { const g = store.get(GEN_KEY, null); return g && g.brains === BRAINS_VER && g.net ? { net: unpackNet(g.net), tau: g.tau || 1, steps: g.steps || 0 } : { net: cloneJ(MY.net), tau: MY.tau || 1, steps: 0 }; })();
+const OPPS = new Map();
+// a scouting file works like a Goalie brain: its own Brain 1, bend predictor and shot history, sharing your body brain
+function oppWrap(o) {
+  for (const k of ['m2', 'book', 'body']) Object.defineProperty(o, k, { get: () => MY[k], enumerable: false, configurable: true });
+  rebuildFlat(o); return o;
+}
+const oppBlank = (pid, name) => ({ pid, name: name || 'Opponent', net: cloneJ(GEN.net), tau: GEN.tau || 1, bp: cloneJ(MY.bp), games: [], flat: [], log: [], acc: [], loss: [], total: 0,
+  gameCount: 0, firstGame: 1, trainFrom: 1, careerMs: 0, catchup: 0, lastX: null, lastH: null, lastP: null, first: Date.now(), last: Date.now(), wins: 0, losses: 0, dirty: true });
+function oppGet(pid, name) {
+  let o = OPPS.get(pid);
+  if (!o) { o = oppWrap(oppBlank(pid, name)); OPPS.set(pid, o); oppSave(o); }
+  else if (name && name !== o.name) { o.name = name; o.dirty = true; }
+  return o;
+}
+function oppSave(o) {
+  if (!S.mem) return;
+  store.set(OPP_KEY + o.pid, { v: 1, brains: BRAINS_VER, pid: o.pid, name: o.name, net: packNet(o.net), tau: o.tau, bp: packFlat(o.bp), log: o.log, acc: o.acc, loss: o.loss.slice(-60), total: o.total,
+    first: o.first, last: o.last, wins: o.wins, losses: o.losses, gameCount: o.gameCount, games: o.games.slice(-12) });
+  store.set(OPPS_KEY, [...OPPS.keys()]); o.dirty = false;
+}
+function oppLoadAll() {
+  if (!S.mem) return;
+  for (const pid of store.get(OPPS_KEY, []) || []) { const d = store.get(OPP_KEY + pid, null); if (d && d.brains === BRAINS_VER && d.net) OPPS.set(pid, oppWrap(Object.assign(oppBlank(pid, d.name), d, { net: unpackNet(d.net), bp: unpackFlat(d.bp), dirty: false }))); }
+}
+oppLoadAll();
+// the general Brain 1: a little practice on everyone's shots (yours most, then opponents', then the bots')
+function genLearn(steps) {
+  const opp = []; for (const o of OPPS.values()) for (const f of o.flat) opp.push(f);
+  for (let s = 0; s < steps; s++) {
+    const u = Math.random(), src = u < 0.45 && MY.flat.length ? MY.flat : u < 0.8 && opp.length ? opp : SB && SB.flat.length ? SB.flat : MY.flat;
+    if (!src.length) return;
+    const f = src[src.length - 1 - Math.floor(Math.random() * Math.min(src.length, 400))], r = evOf(f), k = Math.floor(Math.random() * (Math.min(r.n, NB) + 1)), kt = k + Math.floor(Math.random() * (Math.max(0, r.n - k) + 1));
+    trainStep(GEN.net, feats(r.cr, r.bf, k, ctxOf(f), kt), targetOf(r), 0.05 * (r.w || 1)); GEN.steps++;
+  }
+}
+// an opponent's shot at your Goalie (they shoot it on their phone; it arrives here): their scouting file learns it,
+// your body brain gets a lesson on it, and the general Brain 1 practices a little
+function oppRecord(pid, ev, matchN) {
+  const o = OPPS.get(pid); if (!o) return;
+  let c = o.games[o.games.length - 1];
+  if (!c || c.n !== matchN) { c = { n: matchN, at: Date.now(), online: true, shots: [] }; o.games.push(c); o.gameCount++; if (o.games.length > 12) { o.games.shift(); rebuildFlat(o); } }
+  c.shots.push(ev); o.last = Date.now(); o.dirty = true;
+  if (ev.hit != null && ev.out !== 2 && ev.tx != null) { o.log.push(ev.hit ? 1 : 0); if (o.log.length > 40) o.log.shift(); }
+  if (!trainable(ev)) return;
+  const f = { c, i: c.shots.length - 1 };
+  o.flat.push(f); if (o.flat.length > 1200) o.flat.shift();
+  bpTest(o, f); learn(o); o.total++;
+  trainShot(o, f, ev);
+  genLearn(30);
+}
+// what your phone sends before a match: your Goalie as it will face THIS opponent (frozen for the match), plus your kit
+function goalieSnapshot(pid, name) {
+  const o = pid ? oppGet(pid, name) : null;
+  return { v: 1, pid: S.pid, name: S.name, kit: S.kit, brains: BRAINS_VER, b2ver: BRAIN2_VER,
+    b1: packNet(o ? o.net : GEN.net), tau: o ? o.tau : GEN.tau, bp: packFlat(o ? o.bp : MY.bp), b2: packW(MY.m2.th),
+    book: (MY.book || []).map(e => ({ pos: e.pos, tx: e.tx, ty: e.ty, x0: e.x0, plan: e.plan })) };
+}
+const oppShots = () => { let n = 0; for (const o of OPPS.values()) n += o.total; return n; };
 
 // ---------- modes: your Goalie, play the Super Goalie, or watch it train ----------
 function setMode(mode) {
@@ -2480,7 +2561,7 @@ $('#swBait').addEventListener('click', () => { S.bait = !S.bait; setSwitch($('#s
 $('#swSound').addEventListener('click', () => { S.sound = !S.sound; setSwitch($('#swSound'), S.sound); persist(); });
 function wipeUI() {
   $('#wipeBox').innerHTML = '<div class="confirm"><span>Start both of your Goalie\'s brains from scratch? Save your data first if you want to keep it.</span><button class="danger" id="wipeYes">Wipe</button><button id="wipeNo">Cancel</button></div>';
-  $('#wipeYes').onclick = () => { B = MY = Object.assign(freshBrain(), { gameCount: B.gameCount, firstGame: B.firstGame, trainFrom: B.gameCount + 1, careerMs: B.careerMs }); G.chunk = null; TQ.jobs = TQ.jobs.filter(j => j.br !== MY); memWipe('my'); persist(); resetWipe(); fillTitle(); updateHUD(); paintNeurons(null); };
+  $('#wipeYes').onclick = () => { B = MY = Object.assign(freshBrain(), { gameCount: B.gameCount, firstGame: B.firstGame, trainFrom: B.gameCount + 1, careerMs: B.careerMs }); G.chunk = null; TQ.jobs = TQ.jobs.filter(j => j.br !== MY); memWipe('my'); GEN = { net: cloneJ(MY.net), tau: 1, steps: 0 }; for (const pid of OPPS.keys()) { try { localStorage.removeItem(OPP_KEY + pid); } catch (e) {} } OPPS.clear(); store.set(OPPS_KEY, []); persist(); resetWipe(); fillTitle(); updateHUD(); paintNeurons(null); };
   $('#wipeNo').onclick = resetWipe;
 }
 function resetWipe() { $('#wipeBox').innerHTML = '<button class="textbtn" id="wipe">Wipe the Goalie\'s brain</button>'; $('#wipe').onclick = wipeUI; }
@@ -2503,7 +2584,7 @@ function showMenu() {
   fillMenu(); updateHUD(); layout();
 }
 function hideMenu() { app.classList.remove('menu-on'); $('#menu').hidden = true; layout(); }
-const goalieIQ = br => Math.round((br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total)) / 15);
+const goalieIQ = br => Math.round((br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total + (br === MY ? oppShots() : 0))) / 15);
 const MENU = { res: null, count: null };
 // what it thinks its chances are next match: your recent shots against it (newer ones count more), goals it has since
 // trained a block for count as likely saves, then the odds of it reaching 10 points before you do
@@ -3478,7 +3559,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.02-2101';
+  var VERSION = '2026.11.02-2115';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess app · version ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
