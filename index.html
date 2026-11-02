@@ -49,6 +49,16 @@ button:focus-visible,#slider:focus-visible{outline:2px solid var(--sodium);outli
 /* HUD */
 #hud{position:absolute;left:0;right:0;top:0;z-index:3;pointer-events:none;display:grid;gap:10px;background:linear-gradient(var(--night) 55%,transparent);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:calc(env(safe-area-inset-top,0px) + 12px) 14px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:-2px}
+.topbar .lbl{transition:color .3s}
+.topbar .lbl.mp{color:var(--sodium)}
+.hbtn{pointer-events:auto;width:40px;height:40px;border-radius:20px;display:grid;place-items:center;padding:0;color:var(--chalk);
+  background:color-mix(in srgb,var(--night) 55%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  border:1.5px solid color-mix(in srgb,var(--chalk) 18%,transparent);box-shadow:0 6px 18px rgba(0,0,0,.35);transition:transform .12s,opacity .2s}
+.hbtn svg{width:20px;height:20px}
+.hbtn:active{transform:scale(.92)}
+.hbtn:disabled{opacity:.3;cursor:default}
+.hbtn[hidden]{visibility:hidden;display:grid}
 .board{display:grid;grid-template-columns:auto 1fr auto;align-items:end;gap:14px}
 .side{display:grid;gap:4px;justify-items:start;min-width:58px}
 .side.gk{justify-items:end}
@@ -74,8 +84,8 @@ button:focus-visible,#slider:focus-visible{outline:2px solid var(--sodium);outli
 @keyframes breathe{50%{opacity:.35;transform:scale(.7)}}
 #readPct{font:600 13px/1 var(--mono);min-width:3.1em;text-align:left;color:var(--sodium);font-variant-numeric:tabular-nums}
 
-/* Bottom: ball slider + thumb bar */
-#bar{position:absolute;left:0;right:0;bottom:0;z-index:3;display:grid;gap:4px;
+/* Bottom: the strip under the ball is where you slide it; just a hint line here */
+#bar{position:absolute;left:0;right:0;bottom:0;z-index:3;display:grid;gap:4px;pointer-events:none;min-height:calc(env(safe-area-inset-bottom,0px) + 138px);align-content:end;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:4px calc(env(safe-area-inset-bottom,0px) + 12px)}
 .slide-row{display:flex;align-items:center;gap:12px}
 #slider{position:relative;flex:1;height:46px;touch-action:none;cursor:pointer;--f:.5;border-radius:8px}
@@ -94,25 +104,28 @@ button:focus-visible,#slider:focus-visible{outline:2px solid var(--sodium);outli
 .pill.amber b{font:600 12px/1 var(--mono);background:var(--sodium);color:var(--night);border-radius:9px;padding:3px 6px}
 .pill.amber.on{background:var(--sodium);color:var(--night)}
 .pill:disabled{opacity:.35;cursor:default}
-#hint{flex:1;text-align:center;font:500 14px/1.2 var(--body);letter-spacing:.04em;color:var(--chalk-2);margin:0}
+#hint{min-height:20px;text-align:center;font:500 14px/1.2 var(--body);letter-spacing:.04em;color:var(--chalk-2);margin:0}
 #hint.nudge{color:var(--sodium);animation:nudge .4s}
 @keyframes nudge{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 
 /* Banner */
 #banner{position:absolute;left:50%;top:var(--bannerY,55%);transform:translateX(-50%);z-index:2;pointer-events:none;
-  display:grid;gap:5px;justify-items:center;text-align:center;width:min(340px,calc(100% - 32px));padding:12px 16px 14px;border-radius:14px;
-  background:color-mix(in srgb,var(--night) 80%,transparent);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
-  box-shadow:inset 0 0 0 1px var(--line-strong),0 16px 40px rgba(0,0,0,.45)}
+  display:grid;gap:8px;justify-items:center;text-align:center;width:min(360px,calc(100% - 32px))}
 #banner[hidden]{display:none}
-#banner:not([hidden]){animation:pop .5s cubic-bezier(.2,1.4,.4,1)}
-#bannerBig{font:900 56px/.85 var(--display);letter-spacing:.03em;text-transform:uppercase}
-#banner.good{box-shadow:inset 0 0 0 1.5px var(--good),0 0 40px color-mix(in srgb,var(--good) 25%,transparent),0 16px 40px rgba(0,0,0,.45)}
-#banner.bad{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--bad) 70%,transparent),0 16px 40px rgba(0,0,0,.45)}
+#banner:not([hidden]){animation:float var(--dur,1.9s) cubic-bezier(.2,.9,.3,1) both}
+#bannerBig{font:900 84px/.82 var(--display);letter-spacing:.03em;text-transform:uppercase;
+  text-shadow:0 0 28px color-mix(in srgb,currentColor 55%,transparent),0 0 2px rgba(0,0,0,.6),0 6px 24px rgba(0,0,0,.55)}
 #banner.good #bannerBig{color:var(--good)}
 #banner.bad #bannerBig{color:var(--bad)}
-#bannerSub{font:600 12px/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--chalk)}
-#bannerExp{font:500 15px/1.3 var(--body);color:var(--chalk-2);max-width:34ch;text-wrap:balance}
-@keyframes pop{from{opacity:0;transform:translateX(-50%) translateY(16px) scale(.92)}}
+#bannerSub{display:none}
+#bannerExp{font:600 17px/1.3 var(--body);color:var(--chalk);max-width:30ch;text-wrap:balance;text-shadow:0 2px 12px rgba(0,0,0,.85),0 0 2px rgba(0,0,0,.9)}
+#bannerExp:empty{display:none}
+@keyframes float{
+  0%{opacity:0;transform:translateX(-50%) translateY(14px) scale(.6)}
+  12%{opacity:1;transform:translateX(-50%) translateY(0) scale(1.08)}
+  20%{transform:translateX(-50%) translateY(0) scale(1)}
+  80%{opacity:1;transform:translateX(-50%) translateY(-6px) scale(1)}
+  100%{opacity:0;transform:translateX(-50%) translateY(-26px) scale(.98)}}
 
 /* Keeper's note */
 #note{position:absolute;z-index:4;top:calc(var(--hudH,110px) + 2px);left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));
@@ -332,9 +345,10 @@ h1,h2,h3{margin:0;text-wrap:balance}
   <canvas id="stage" aria-label="Penalty pitch. Swipe up from the ball to shoot."></canvas>
 
   <header id="hud">
+    <div class="topbar"><button class="hbtn" id="btnMenu" aria-label="Back to the menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5"/><path d="M6.5 10v9h11v-9"/><path d="M10 19v-5h4v5"/></svg></button><span class="lbl" id="raceL">First to 10</span><button class="hbtn" id="btnBrain" aria-label="The Goalie's brain"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="7" r="2"/><circle cx="5" cy="17" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="12" r="2"/><path d="M7 7l3-1.5M7 7l3 4M7 17l3-4M7 17l3 1.5M14 5.5l3.4 5M14 12h3M14 18.5l3.4-5"/></svg></button></div>
     <div class="board">
       <div class="side"><span class="lbl" id="rYouL">You</span><b id="rYou">0</b></div>
-      <div class="race" aria-label="Match score, first to 10"><div class="pips" id="pips"></div><span class="lbl" id="raceL">First to 10</span></div>
+      <div class="race" aria-label="Match score, first to 10"><div class="pips" id="pips"></div></div>
       <div class="side gk"><span class="lbl" id="rGkL">Goalie</span><b id="rGk">0</b></div>
     </div>
     <div class="sub">
@@ -347,19 +361,7 @@ h1,h2,h3{margin:0;text-wrap:balance}
   <div id="banner" hidden><b id="bannerBig"></b><span id="bannerSub"></span><span id="bannerExp"></span></div>
 
   <footer id="bar">
-    <div class="slide-row">
-      <span class="lbl">Ball</span>
-      <div id="slider" role="slider" tabindex="0" aria-label="Ball position" aria-valuemin="-3" aria-valuemax="3" aria-valuenow="0">
-        <div class="track"></div>
-        <div class="ticks"><span style="left:0%">-3</span><span style="left:16.667%">-2</span><span style="left:33.333%">-1</span><span style="left:50%">0</span><span style="left:66.667%">1</span><span style="left:83.333%">2</span><span style="left:100%">3</span></div>
-        <b class="knob"></b>
-      </div>
-    </div>
-    <div class="btn-row">
-      <button class="pill" id="btnBrain">Brain</button>
-      <p id="hint">Swipe up from the ball</p>
-      <button class="pill" id="btnMenu">Menu</button>
-    </div>
+    <p id="hint">Swipe up from the ball</p>
   </footer>
 
   <div id="menu" hidden>
@@ -1839,7 +1841,7 @@ const MY_KEY = 'outguess6', SUPER_KEY = 'outguess6s', KEEP_LOADED = 60;
 let META = MY_KEY;
 const GKEY = n => META + '.g' + n;
 const meta = store.get(META, null) || {};
-const S = { kit: meta.kit || 'classic', owned: Array.isArray(meta.owned) ? meta.owned : [], coins: meta.coins || 0, trail: meta.trail || null, devR: meta.devR || null, best: meta.best || 0, mem: meta.mem !== false, sound: meta.sound !== false, bait: !!meta.bait, superOn: false, sel: meta.sel === 'super' ? 'super' : 'mine', practice: meta.practice !== false };
+const S = { slid: meta.slid || 0, kit: meta.kit || 'classic', owned: Array.isArray(meta.owned) ? meta.owned : [], coins: meta.coins || 0, trail: meta.trail || null, devR: meta.devR || null, best: meta.best || 0, mem: meta.mem !== false, sound: meta.sound !== false, bait: !!meta.bait, superOn: false, sel: meta.sel === 'super' ? 'super' : 'mine', practice: meta.practice !== false };
 // data from earlier versions of the game is left alone (not loaded, so it can't slow anything down) until you save it or delete it
 const allKeys = () => { const ks = []; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('outguess')) ks.push(k); } } catch (e) {} return ks.sort(); };
 const oldKeys = () => allKeys().filter(k => !k.startsWith('outguess6'));
@@ -1862,7 +1864,7 @@ let MY = loadBrain(meta, MY_KEY), B = MY, SB = null;
 const brainMeta = br => ({ bp: br.bp, net: br.net, gameCount: br.gameCount, firstGame: br.firstGame, trainFrom: br.trainFrom, careerMs: Math.round(br.careerMs), log: br.log, acc: br.acc, loss: br.loss.slice(-60), total: br.total, tau: br.tau,
   m2: { ver: BRAIN2_VER, w: packW(br.m2.th), gen: br.m2.gen, hist: br.m2.hist.slice(-200), trainMs: Math.round(br.m2.trainMs), shots: br.m2.shots || 0, practice: br.m2.practice || 0 }, body: { snaps: (br.body ? br.body.snaps : []).slice(-60) }, book: br.book || [] });
 function persist() {
-  const m = { ver: 6, brains: BRAINS_VER, best: S.best, mem: S.mem, sound: S.sound, bait: S.bait, sel: S.sel, practice: S.practice, devR: S.devR, trail: S.trail, coins: S.coins, kit: S.kit, owned: S.owned };
+  const m = { ver: 6, brains: BRAINS_VER, best: S.best, mem: S.mem, sound: S.sound, bait: S.bait, sel: S.sel, practice: S.practice, devR: S.devR, trail: S.trail, coins: S.coins, kit: S.kit, owned: S.owned, slid: S.slid };
   if (S.mem) Object.assign(m, brainMeta(MY));
   const mine = G.mode === 'mine' && G.chunk;
   const save = () => store.set(MY_KEY, m) && (!S.mem || !mine || store.set(GKEY(G.chunk.n), G.chunk));
@@ -1880,7 +1882,7 @@ function readAcc() { const l = B.log.slice(-20); if (l.length < 3) return null; 
 
 // ---------- DOM ----------
 const app = $('#app'), cv = $('#stage'), g = cv.getContext('2d');
-const hud = $('#hud'), bar = $('#bar'), hint = $('#hint'), sl = $('#slider'), ticks = [...sl.querySelectorAll('.ticks span')];
+const hud = $('#hud'), bar = $('#bar'), hint = $('#hint');
 for (let i = 0; i < 2 * WIN_AT; i++) $('#pips').appendChild(document.createElement('i'));
 $('#chanceTick').style.left = (CHANCE * 100) + '%';
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -1936,7 +1938,7 @@ function layout() {
   geo.step = Math.min(gw * 0.12, (W - 60) / 7);
   geo.horizon = gyt - gh * 0.22;
   app.style.setProperty('--hudH', hb + 'px');
-  app.style.setProperty('--bannerY', (geo.gyb + 26) + 'px');
+  app.style.setProperty('--bannerY', (geo.gyb + 22) + 'px');
   crowd = []; paintBackdrop();
 }
 const g2s = (x, y) => ({ x: geo.gx0 + x * geo.gw, y: geo.gyb - y * geo.gh });
@@ -2027,8 +2029,8 @@ function showNote(label, text, ms, kind = '') {
 }
 function hideNote() { $('#note').hidden = true; }
 function nudge(text) { hint.textContent = text; hint.classList.remove('nudge'); void hint.offsetWidth; hint.classList.add('nudge'); }
-function showBanner(cls, big, sub, exp) {
-  const bn = $('#banner'); bn.className = cls; $('#bannerBig').textContent = big; $('#bannerSub').textContent = sub; $('#bannerExp').textContent = exp;
+function showBanner(cls, big, sub, exp, ms = 1900) {
+  const bn = $('#banner'); bn.className = cls; bn.style.setProperty('--dur', ms + 'ms'); $('#bannerBig').textContent = big; $('#bannerSub').textContent = sub; $('#bannerExp').textContent = exp;
   bn.hidden = true; void bn.offsetWidth; bn.hidden = false;
 }
 
@@ -2042,34 +2044,31 @@ function updateHUD() {
   // the race: your pips fill from the left, the Goalie's from the right; first to the middle wins
   const pips = $('#pips').children; $('#pips').classList.toggle('sup', G.mode !== 'mine');
   for (let i = 0; i < 2 * WIN_AT; i++) pips[i].className = i < WIN_AT ? (i < G.you ? 'you' : '') : (2 * WIN_AT - 1 - i < G.gk ? 'gk' : '');
-  $('#raceL').textContent = G.mode === 'watch' ? 'Watching it train' : G.you === WIN_AT - 1 || G.gk === WIN_AT - 1 ? 'Match point' : 'First to ' + WIN_AT;
+  const mp = G.you === WIN_AT - 1 || G.gk === WIN_AT - 1;
+  $('#raceL').textContent = G.mode === 'watch' ? 'Watching it train' : mp ? 'Match point' : 'First to ' + WIN_AT; $('#raceL').classList.toggle('mp', mp && G.mode !== 'watch');
   const a = readAcc();
   $('#readPct').textContent = a == null ? '–' : pc(a);
   $('#readFill').style.width = a == null ? '0' : (a * 100) + '%';
   const busy = G.mode !== 'watch' && (G.state === 'flying' || G.state === 'result');
   $('#btnBrain').disabled = busy; $('#btnMenu').disabled = busy;
-  $('#btnBrain').textContent = G.mode === 'watch' ? 'Stop' : 'Brain';
+  $('#btnBrain').hidden = G.mode === 'watch';
   paintSlider();
 }
 function paintNeurons() {}
 
-// ---------- ball slider ----------
+// ---------- moving the ball: slide left or right anywhere below it ----------
+// Same 7 spots and the same record of every move (so the brains see exactly what they always did); only the control changed.
 const sliderLocked = () => G.state !== 'ready' || G.paused || G.touched || !!sw || G.mode === 'watch';
-function paintSlider() {
-  sl.style.setProperty('--f', (G.pos + 3) / 6); sl.setAttribute('aria-valuenow', G.pos);
-  ticks.forEach((t, i) => t.classList.toggle('on', i - 3 === G.pos)); sl.classList.toggle('locked', sliderLocked());
-}
-function setPos(n) { n = clamp(n, -3, 3); if (n === G.pos) return; G.pos = n; if (G.state === 'ready') G.slideLog.push([n, Math.round(G.clock)]); SFX.tick(); buzz(4); paintSlider(); }
+function paintSlider() {}
+function setPos(n) { n = clamp(n, -3, 3); if (n === G.pos) return; G.pos = n; if (G.state === 'ready') G.slideLog.push([n, Math.round(G.clock)]); SFX.tick(); buzz(4); }
 let slideId = null;
-const slideTo = e => { const r = sl.getBoundingClientRect(); setPos(Math.round(clamp((e.clientX - r.left - 16) / (r.width - 32), 0, 1) * 6) - 3); };
-sl.addEventListener('pointerdown', e => { if (sliderLocked()) return; e.preventDefault(); slideId = e.pointerId; try { sl.setPointerCapture(e.pointerId); } catch (_) {} audio(); slideTo(e); });
-sl.addEventListener('pointermove', e => { if (e.pointerId === slideId && !sliderLocked()) slideTo(e); });
-const endSlide = e => { if (e.pointerId === slideId) slideId = null; };
-sl.addEventListener('pointerup', endSlide); sl.addEventListener('pointercancel', endSlide);
-sl.addEventListener('keydown', e => {
-  if (sliderLocked()) return;
-  if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { setPos(G.pos - 1); e.preventDefault(); }
-  else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { setPos(G.pos + 1); e.preventDefault(); }
+const slideAt = x => setPos(Math.round((x - W / 2) / geo.step));
+const endSlide = e => { if (e.pointerId === slideId) { slideId = null; S.slid = (S.slid || 0) + 1; } };
+// keyboard: arrow keys still move it
+window.addEventListener('keydown', e => {
+  if (sliderLocked() || e.target.closest && e.target.closest('input,textarea')) return;
+  if (e.key === 'ArrowLeft') { setPos(G.pos - 1); e.preventDefault(); }
+  else if (e.key === 'ArrowRight') { setPos(G.pos + 1); e.preventDefault(); }
 });
 
 // ---------- swipe recording ----------
@@ -2133,7 +2132,7 @@ function scuff(msg, s) {
   G.lastShotClock = G.clock; goaliePoint();
   recordEvent({ g: G.chunk.n, md: cm.md, cr: s.cr.map(fixCr), bf: r3(s.bf), n: Math.min(s.cr.length - 1, NB), pos: G.pos, mv: G.pos - G.prevPos, lo: G.lastOut, tm: cm.tm, sc, bait: cm.bait, gap: cm.gap, sld: cm.sld, tx: null, ty: null, k: cm.k, aim: 0, strike: 0, lv: G.level, out: 4 });
   SFX.miss(); buzz(60);
-  showBanner('bad', 'Scuffed', `Goalie +1 · ${G.you}–${G.gk}`, msg + ' Once it reads you, you have to shoot.');
+  showBanner('bad', 'Scuffed', '', 'You stopped mid-swipe. Goalie point.', 2200);
   hint.textContent = ''; G.state = 'result'; G.shot = null; G.resultUntil = performance.now() + 2200;
   updateHUD();
 }
@@ -2143,7 +2142,7 @@ function timeout() {
   G.lastShotClock = G.clock; goaliePoint();
   recordEvent({ g: G.chunk.n, md: moodNow(), cr: [], bf: 0, n: 0, pos: G.pos, mv: G.pos - G.prevPos, lo: G.lastOut, tm: { clk: 0, rest: 0, since, wr: 0 }, sc, bait: G.baitOn ? 1 : 0, gap: G.gap, sld: sldNow(), tx: null, ty: null, k: 0, lv: G.level, out: 3, gm: Math.round(G.clock) });
   SFX.miss(); buzz(60);
-  showBanner('bad', "Time's up", `Goalie +1 · ${G.you}–${G.gk}`, 'The 10-second shot clock ran out before you shot.');
+  showBanner('bad', "Time's up", '', 'Too slow. Goalie point.');
   hint.textContent = ''; G.touched = false; G.state = 'result'; G.shot = null; G.resultUntil = performance.now() + 1900;
   updateHUD();
 }
@@ -2181,7 +2180,10 @@ cv.addEventListener('pointerdown', e => {
   if (G.state !== 'ready' || G.paused || sw || G.mode === 'watch') return;
   e.preventDefault();
   const p = pos(e);
-  if (Math.hypot(p.x - ballX(G.pos), p.y - geo.ballY) > Math.max(geo.r0 * 1.9, 30)) return nudge('Start your swipe on the ball');
+  const onBall = Math.hypot(p.x - ballX(G.pos), p.y - geo.ballY) <= Math.max(geo.r0 * 1.9, 30);
+  // below the ball: slide it to another spot
+  if (!onBall && p.y > geo.ballY + geo.r0 * 0.4 && !sliderLocked()) { slideId = e.pointerId; try { cv.setPointerCapture(e.pointerId); } catch (_) {} audio(); slideAt(p.x); return; }
+  if (!onBall) return nudge('Start your swipe on the ball');
   try { cv.setPointerCapture(e.pointerId); } catch (_) {}
   beginSwipe(p, e.pointerId);
 });
@@ -2192,16 +2194,18 @@ function beginSwipe(p, id) {
   audio();
 }
 cv.addEventListener('pointermove', e => {
+  if (e.pointerId === slideId) { if (!sliderLocked()) slideAt(pos(e).x); return; }
   if (!sw || e.pointerId !== sw.id) return;
   const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : null;
   for (const ev of (evs && evs.length ? evs : [e])) { if (!sw) break; addPoint(pos(ev)); }
 });
 cv.addEventListener('pointerup', e => {
+  if (e.pointerId === slideId) return endSlide(e);
   if (!sw || e.pointerId !== sw.id) return;
   addPoint(pos(e)); if (!sw) return; const s = sw; sw = null;
   if (G.state === 'ready' && !G.paused) release(s);
 });
-cv.addEventListener('pointercancel', () => { if (sw) foul('Swipe interrupted.'); });
+cv.addEventListener('pointercancel', e => { if (e.pointerId === slideId) return endSlide(e); if (sw) foul('Swipe interrupted.'); });
 app.addEventListener('touchmove', e => { if (!e.target.closest('.sheet')) e.preventDefault(); }, { passive: false });
 app.addEventListener('contextmenu', e => e.preventDefault());
 
@@ -2278,8 +2282,13 @@ function resolveShot() {
   const where = `${spotName(sh.peak.x, sh.peak.y)} (${pc(sh.peak.cov)})`;
   const bkD = G.dive && G.dive.book;
   if (bkD) { rec.bk = bkD.key; if (outNet === 1) bkD.saves = (bkD.saves || 0) + 1; }
-  if (bkD) showBanner(good ? 'good' : 'bad', big, `${sub} · ${G.you}–${G.gk}`, outNet === 1 ? `It knew this one. Trained block from your shot ${agoText(bkD.at)}.` : `It tried its trained block, but this one was just different enough (missed by ${Math.round(Math.max(0, rec.gk.gap) * 100)} cm).`);
-  else showBanner(good ? 'good' : 'bad', big, `${sub} · ${G.you}–${G.gk}`, hit ? `Read ${sh.k} bands, felt your turns, called it: ${where}` : `Read ${sh.k} bands, felt your turns, expected ${where}`);
+  // plain words only: what happened, not how it works
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const line = bkD ? (outNet === 1 ? 'It knew this one. You trained it on that shot.' : 'It tried its trained save. This one was different.')
+    : sh.outcome === 'goal' ? pick(hit ? ['It saw it coming. Too slow.', 'Right guess, too late.', 'It guessed right and still couldn\'t get there.'] : ['Fooled it.', 'Sent it the wrong way.', 'It never saw that coming.'])
+    : sh.outcome === 'saved' ? pick(hit ? ['It read you.', 'It knew where that was going.', 'Called it.'] : ['Lucky stop.', 'Wrong guess, still got there.', 'Saved on instinct.'])
+    : sh.outcome === 'wide' ? 'Just wide.' : 'Over the bar.';
+  showBanner(good ? 'good' : 'bad', sh.outcome === 'goal' ? 'Goal!' : big, '', line);
   G.state = 'result'; G.resultUntil = performance.now() + 1900;
   updateHUD();
 }
@@ -3165,14 +3174,20 @@ function drawPitch(now) {
   g.fillStyle = rgba(C.sodium, 0.7); g.fillRect(0, ly, W, 1.5);
   // the seven ball spots (not on the home screen, where the ball sits further up)
   const by = geo.ballY;
+  if (G.state !== 'title' && G.state !== 'over' && G.mode !== 'watch' && (S.slid || 0) < 3 && G.state === 'ready' && !sw) {
+    g.font = '600 12px ' + css('--body'); g.textAlign = 'center'; g.textBaseline = 'top'; g.fillStyle = rgba(C.chalk, 0.45 + 0.15 * Math.sin(now / 400));
+    g.fillText('‹   slide here to move the ball   ›', W / 2, by + geo.r0 * 0.75 + 16);
+  }
   if (G.state !== 'title') for (let n = -3; n <= 3; n++) { g.fillStyle = rgba(C.chalk, n === G.pos ? 0.75 : n === 0 ? 0.5 : 0.25); g.beginPath(); g.ellipse(ballX(n), by + geo.r0 * 0.75, n === 0 ? 5 : 3.5, n === 0 ? 2.2 : 1.6, 0, 0, 7); g.fill(); }
 }
 function drawGoal(now, front) {
   const { gx0, gyt, gyb, gw, gh } = geo, gx1 = gx0 + gw;
   if (!front) {
     const inset = gw * 0.05, bt = gyt - gh * 0.12, bb = gyb - gh * 0.16;
-    const ng = g.createLinearGradient(0, gyt, 0, gyb); ng.addColorStop(0, rgba(C.night, 0.7)); ng.addColorStop(1, rgba(C.night, 0.35));
-    g.fillStyle = ng; g.beginPath(); g.moveTo(gx0, gyb); g.lineTo(gx0, gyt); g.lineTo(gx1, gyt); g.lineTo(gx1, gyb); g.lineTo(gx1 - inset, bb); g.lineTo(gx1 - inset, bt); g.lineTo(gx0 + inset, bt); g.lineTo(gx0 + inset, bb); g.closePath(); g.fill();
+    const ng = g.createLinearGradient(0, gyt, 0, gyb); ng.addColorStop(0, '#000'); ng.addColorStop(1, '#030707');
+    // the whole inside of the goal is black, so the net, the heat map and the ball stand out
+    g.fillStyle = ng; g.fillRect(gx0, gyt, gw, gh);
+    g.fillStyle = 'rgba(255,255,255,.035)'; g.beginPath(); g.moveTo(gx0, gyb); g.lineTo(gx0, gyt); g.lineTo(gx1, gyt); g.lineTo(gx1, gyb); g.lineTo(gx1 - inset, bb); g.lineTo(gx1 - inset, bt); g.lineTo(gx0 + inset, bt); g.lineTo(gx0 + inset, bb); g.closePath(); g.fill();
     let rp = null;
     if (G.ripple) { const t = (now - G.ripple.t0) / 900; if (t < 1) {
       rp = { ...g2s(G.ripple.x, G.ripple.y), amp: (1 - t) * gh * 0.16 * Math.sin(t * 14) };
@@ -3355,19 +3370,7 @@ function drawReplay(sh, alpha) {
   // your swipe fades out as the ball flies, leaving a faint trace on the result
   const age = (performance.now() - sh.t0) / 1000;
   drawTrail(sh.trace, G.state === 'result' ? 0.5 / alpha : clamp(1.15 - age * 1.2, 0.5, 1) / alpha);
-  if (sh.commitPx && G.state === 'result') {
-    const tgt = g2s(sh.peak.x, sh.peak.y), c = sh.commitPx;
-    g.setLineDash([5, 5]); g.strokeStyle = C.sodium; g.lineWidth = 2; g.beginPath(); g.moveTo(c.x, c.y); g.lineTo(tgt.x, tgt.y); g.stroke(); g.setLineDash([]);
-    g.beginPath(); g.arc(c.x, c.y, 9, 0, 7); g.stroke();
-    g.font = monoF(10); g.fillStyle = C.sodium; g.textBaseline = 'middle'; g.textAlign = c.x > W - 90 ? 'right' : 'left';
-    g.fillText('READ HERE', c.x + (c.x > W - 90 ? -14 : 14), c.y);
-  }
-  // your last dot: the moment the blindfold came off
-  if (sh.lastDot && !(sh.commitPx && Math.hypot(sh.lastDot.x - sh.commitPx.x, sh.lastDot.y - sh.commitPx.y) < 24)) {
-    const d = sh.lastDot; g.fillStyle = C.cool; g.shadowColor = C.cool; g.shadowBlur = 12; g.beginPath(); g.arc(d.x, d.y, 7, 0, 7); g.fill(); g.shadowBlur = 0;
-    g.strokeStyle = C.cool; g.lineWidth = 2; g.beginPath(); g.arc(d.x, d.y, 12, 0, 7); g.stroke();
-    if (G.state === 'result') { g.font = monoF(10); g.fillStyle = C.cool; g.textBaseline = 'top'; g.textAlign = 'center'; g.fillText('BLINDFOLD OFF', clamp(d.x, 50, W - 50), d.y + 16); }
-  }
+  // (the read point and blindfold markers are gone: players see what happened, not how it works)
   g.restore();
 }
 
@@ -3419,9 +3422,9 @@ function frame(now) {
     if (G.state === 'ready') {
       // shot clock ring around the ball
       const left = clamp(shotLeft(), 0, SHOT_SECS), low = left < 3, secs = Math.ceil(left);
+      const pulse = low ? 1 + 0.5 * (0.5 + 0.5 * Math.sin(now / 90)) : 1;
       g.strokeStyle = rgba(C.chalk, 0.15); g.lineWidth = 3; g.beginPath(); g.arc(bx, by, br + 7, 0, 7); g.stroke();
-      g.strokeStyle = low ? C.bad : C.sodium; g.beginPath(); g.arc(bx, by, br + 7, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left / SHOT_SECS); g.stroke();
-      g.font = '700 14px ' + css('--mono'); g.fillStyle = low ? C.bad : C.chalk; g.textAlign = 'center'; g.textBaseline = 'bottom'; if (!sw) g.fillText(secs, bx, by - br - 12);
+      g.strokeStyle = low ? C.bad : C.sodium; g.lineWidth = 3 * pulse; if (low) { g.shadowColor = C.bad; g.shadowBlur = 10 * pulse; } g.beginPath(); g.arc(bx, by, br + 7, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left / SHOT_SECS); g.stroke(); g.shadowBlur = 0;
       if (low && secs !== G.lastTick && secs > 0 && !G.paused) { G.lastTick = secs; SFX.tick(); }
     }
   }
@@ -3471,7 +3474,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.02-1803';
+  var VERSION = '2026.11.02-1832';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess app · version ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
