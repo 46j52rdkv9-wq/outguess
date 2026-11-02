@@ -2653,11 +2653,10 @@ function hideMenu() { app.classList.remove('menu-on'); $('#menu').hidden = true;
 const goalieIQ = br => Math.round((br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total + (br === MY ? oppShots() : 0))) / 15);
 const MENU = { res: null, count: null };
 // ---------- version and what changed (each update goes up by 0.01) ----------
-const APP_VERSION = '1.01';
+const APP_VERSION = '1.02';
 const WHATS_NEW = [
-  'A new pitch, mowed in a checkerboard',
-  'A new goal: diamond netting and grass inside the net',
-  'The crowd celebrates your goals, a different way every time',
+  'A redesigned Goalie: a real kit, padded gloves and shading',
+  'A sharper Ninja: hood, wrapped arms and a red sash',
 ];
 window.APP_VERSION = APP_VERSION;
 function showWhatsNew() {
@@ -2857,16 +2856,28 @@ const KITS = [
   { id: 'ninja', name: 'Ninja', price: 5, desc: 'All black, red blindfold. The blindfold never comes off.' },
 ];
 function kitSvg(id) {
-  const k = id === 'ninja' ? { j: '#16191c', sh: '#0c0e10', so: '#1d2226', gl: '#2a3035', hd: '#101315', rim: 'rgba(238,242,231,.28)', bf: '#e3262e' } : { j: C.sodium, sh: C.panel, so: C.chalk2, gl: C.chalk, hd: C.panel, rim: 'rgba(8,25,26,.9)', bf: C.chalk2 };
-  const L = (x1, y1, x2, y2, w, c) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
-  const limb = (pts, w, c) => pts.map(([a, b, c2, d]) => L(a, b, c2, d, w + 3, k.rim) + L(a, b, c2, d, w, c)).join('');
+  // a small portrait of each kit, matching how the Goalie is drawn in the game
+  const K = LOOKS[id === 'ninja' ? 'ninja' : 'classic'], ol = id === 'ninja' ? 'rgba(238,242,231,.22)' : K.line;
+  const L = (x1, y1, x2, y2, w, c, cap = 'round') => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="${w}" stroke-linecap="${cap}"/>`;
+  const limb = (pts, w, c) => pts.map(([a, b, c2, d]) => L(a, b, c2, d, w + 2.6, ol)).join('') + pts.map(([a, b, c2, d]) => L(a, b, c2, d, w, c)).join('');
+  const glove = (x, y) => `<ellipse cx="${x}" cy="${y}" rx="7" ry="6.2" fill="${K.glove}" stroke="${ol}" stroke-width="1.3"/>` + L(x - 4, y + 5.5, x + 4, y + 5.5, 3.2, K.cuff, 'butt') + L(x - 2.5, y - 3, x - 2.5, y + 1, 0.9, K.gloveD) + L(x + 0.5, y - 3.5, x + 0.5, y + 1, 0.9, K.gloveD) + L(x + 3.2, y - 3, x + 3.2, y + 1, 0.9, K.gloveD);
+  const torso = 'M38 35 Q33 36 31 40 Q35 52 39 66 Q46 69 53 66 Q57 52 61 40 Q59 36 54 35 Q46 39 38 35Z';
   return `<svg viewBox="0 0 92 110" aria-hidden="true">` +
-    limb([[40, 66, 36, 84], [52, 66, 56, 84]], 9, k.sh) + limb([[36, 84, 34, 100], [56, 84, 58, 100]], 6, k.so) +
-    limb([[46, 64, 46, 38]], 17, k.j) + limb([[38, 40, 26, 54], [54, 40, 66, 54], [26, 54, 20, 42], [66, 54, 72, 42]], 6, k.j) +
-    `<circle cx="20" cy="40" r="6" fill="${k.gl}" stroke="${k.rim}" stroke-width="1.5"/><circle cx="72" cy="40" r="6" fill="${k.gl}" stroke="${k.rim}" stroke-width="1.5"/>` +
-    `<circle cx="46" cy="26" r="9" fill="${k.hd}" stroke="${id === 'ninja' ? k.rim : 'rgba(238,242,231,.5)'}" stroke-width="1.2"/>` +
-    L(36, 25, 56, 25, 5, k.bf) + `<path d="M37 25 l-9 3 M37 25 l-8 -3" stroke="${k.bf}" stroke-width="2.4" stroke-linecap="round"/>` +
-    `<ellipse cx="46" cy="102" rx="18" ry="3" fill="rgba(0,0,0,.35)"/></svg>`;
+    `<ellipse cx="46" cy="103" rx="18" ry="3" fill="rgba(0,0,0,.35)"/>` +
+    limb([[41, 68, 37, 84], [51, 68, 55, 84]], 7, id === 'ninja' ? K.shorts : K.skin) + limb([[37, 84, 35, 99], [55, 84, 57, 99]], 5.5, K.sock) +
+    L(33.2, 87, 39.8, 87, 1.6, K.band, 'butt') + L(52.2, 87, 58.8, 87, 1.6, K.band, 'butt') +
+    `<ellipse cx="34.5" cy="100.5" rx="4.5" ry="2.6" fill="${K.boot}"/><ellipse cx="57.5" cy="100.5" rx="4.5" ry="2.6" fill="${K.boot}"/>` +
+    limb([[40, 66, 39, 74], [52, 66, 53, 74]], 9, K.shorts) +
+    `<path d="${torso}" fill="${K.jer}" stroke="${ol}" stroke-width="2.4" stroke-linejoin="round"/><path d="M33 41 Q36 53 39.5 65" stroke="${K.panel}" stroke-width="3.2" fill="none"/><path d="M59 41 Q56 53 52.5 65" stroke="${K.panel}" stroke-width="3.2" fill="none"/>` +
+    (K.num ? `<text x="46" y="53" text-anchor="middle" font-family="Big Shoulders Display, sans-serif" font-weight="900" font-size="11" fill="${K.num}">1</text>` : '') +
+    (K.sash ? L(38, 62, 54, 62, 3.6, K.sash) + `<path d="M41 62 q-2 6 -4 10 M41 62 q1 5 0 9" stroke="${K.sash}" stroke-width="2" stroke-linecap="round" fill="none"/>` : '') +
+    limb([[33, 39, 25, 52], [59, 39, 67, 52]], 6, K.jer) + limb([[25, 52, 19, 41], [67, 52, 73, 41]], 5, K.jer) +
+    glove(18, 37) + glove(74, 37) +
+    (K.hood ? `<path d="M37 26 Q37 15 46 15 Q55 15 55 26 L54 36 Q46 39 38 36Z" fill="${K.jer}" stroke="${ol}" stroke-width="1.3"/>` : L(46, 34, 46, 29, 5, K.skin)) +
+    `<circle cx="46" cy="24" r="8.5" fill="${K.skin}" stroke="${ol}" stroke-width="1.3"/>` +
+    (K.hood ? '' : `<path d="M37.6 23 A8.6 8.6 0 0 1 54.4 23 Q46 20 37.6 23Z" fill="${K.hair}"/>`) +
+    L(37, 25, 55, 25, 4.6, K.blind, 'butt') + `<path d="M37 25 q-6 1 -9 5 M37 25 q-6 -2 -9 -1" stroke="${K.blind}" stroke-width="2" stroke-linecap="round" fill="none"/>` +
+    `</svg>`;
 }
 function paintStore() {
   $('#stCoins').textContent = S.coins || 0;
@@ -3756,36 +3767,136 @@ function drawHeat(q, land, peak, alpha) {
   if (land) { const p = g2s(land.x, land.y); g.strokeStyle = C.chalk; g.lineWidth = 2.5; g.beginPath(); g.arc(p.x, p.y, 7, 0, 7); g.stroke(); }
   g.restore();
 }
+// ---------- how the Goalie looks (drawing only: the physics joints and the brains are untouched) ----------
+// Each body part is a tapered, cel-shaded shape hung on the engine's joints, lit from the floodlights at the top left.
+const LOOKS = {
+  classic: { jer: '#ffad3b', jerL: '#ffd690', jerD: '#c4701a', panel: '#173a31', num: 'rgba(110,52,0,.55)', shorts: '#163029', shortsL: '#25493e', shortsD: '#0a1815',
+    sock: '#163029', sockL: '#25493e', sockD: '#0a1815', band: '#ffad3b', boot: '#0c1010', bootL: '#2e3a38', glove: '#f3f6ef', gloveL: '#ffffff', gloveD: '#b5c0b9', cuff: '#ffad3b', stripe: '#163029',
+    skin: '#c58b60', skinL: '#e0aa7d', skinD: '#966141', hair: '#17110d', line: 'rgba(2,8,8,.92)', blind: '#e2e8e2', blindD: '#a3ada6' },
+  ninja: { jer: '#1b1f23', jerL: '#3a424a', jerD: '#0a0c0e', panel: '#262c32', num: null, shorts: '#15181b', shortsL: '#2e353b', shortsD: '#08090a',
+    sock: '#15181b', sockL: '#2e353b', sockD: '#08090a', band: '#2c3339', boot: '#0b0c0d', bootL: '#272d32', glove: '#23282d', gloveL: '#3d454c', gloveD: '#121518', cuff: '#2c3339', stripe: '#e3262e',
+    skin: '#1b1f23', skinL: '#343b42', skinD: '#0a0c0e', hair: '#0d0f11', line: 'rgba(238,242,231,.13)', blind: '#ff2e38', blindD: '#a3121b', sash: '#e3262e', wraps: true, hood: true }
+};
+LOOKS.blue = { ...LOOKS.classic, jer: '#6f9bbd', jerL: '#a9cbe4', jerD: '#41698a', band: '#6f9bbd', cuff: '#6f9bbd', num: 'rgba(10,30,50,.5)' };
 function drawBody(pose, now, blind) {
-  // kits are looks only. The ninja is all black with a red blindfold that never comes off
-  const ninja = curKit() === 'ninja', NK = { j: '#16191c', sh: '#0c0e10', so: '#1d2226', gl: '#2a3035', hd: '#101315', bf: '#e3262e' };
-  const jc = ninja ? NK.j : G.mode === 'super' || G.mode === 'watch' ? C.cool : C.sodium; // the Super Goalie wears blue
+  const kit = curKit(), ninja = kit === 'ninja', K = ninja ? LOOKS.ninja : (G.mode === 'super' || G.mode === 'watch') ? LOOKS.blue : LOOKS.classic;
   if (ninja) blind = true;
-  const s = geo.gw / GW_M, m = p => g2s(p[0] / GW_M, p[1] / GH_M), P = pose.pts;
-  const sp = m([pose.x, 0]); g.fillStyle = rgba(C.night, 0.45); g.beginPath(); g.ellipse(sp.x, geo.gyb + 2, s * (0.4 + Math.abs(Math.sin(pose.th)) * 0.55), 4, 0, 0, 7); g.fill();
+  const s = geo.gw / GW_M, m = p => g2s(p[0] / GW_M, p[1] / GH_M), P = pose.pts, Q = {};
+  for (const k in P) Q[k] = m(P[k]);
+  const sp = m([pose.x, 0]); g.fillStyle = rgba(C.night, 0.5); g.beginPath(); g.ellipse(sp.x, geo.gyb + 2, s * (0.42 + Math.abs(Math.sin(pose.th)) * 0.55), 4.5, 0, 0, 7); g.fill();
   // the body is drawn inside the goal box only (the engine already keeps it there; this is a second lock for the picture)
   g.save(); g.beginPath(); g.rect(geo.gx0, geo.gyt, geo.gw, geo.gh + 12); g.clip();
-  g.lineCap = 'round';
-  const bone = (a, b, rad, col) => { const A = m(a), Bp = m(b); g.strokeStyle = col; g.lineWidth = Math.max(2, rad * s * 2); g.beginPath(); g.moveTo(A.x, A.y); g.lineTo(Bp.x, Bp.y); g.stroke(); };
-  const edge = (a, b, rad) => bone(a, b, rad + 0.018, ninja ? rgba(C.chalk, 0.26) : rgba(C.night, 0.85));
-  // legs: shorts, then socks and boots
-  for (const [hip, K, F] of [[P.hipL, P.KL, P.FL], [P.hipR, P.KR, P.FR]]) { edge(hip, K, 0.08); edge(K, F, 0.065); bone(hip, K, 0.08, ninja ? NK.sh : C.panel); bone(K, F, 0.06, ninja ? NK.so : C.chalk2); const f = m(F); g.fillStyle = C.night; g.beginPath(); g.arc(f.x, f.y, 0.07 * s, 0, 7); g.fill(); }
-  // torso in the keeper's jersey
-  edge(P.P, P.S, 0.15); edge(P.S, P.N, 0.15); edge(P.SL, P.SR, 0.06); bone(P.P, P.S, 0.15, jc); bone(P.S, P.N, 0.15, jc); bone(P.SL, P.SR, 0.06, jc);
-  // arms and gloves
-  for (const [S, E, Hh] of [[P.SL, P.EL, P.HL], [P.SR, P.ER, P.HR]]) { edge(S, E, 0.055); edge(E, Hh, 0.05); bone(S, E, 0.055, jc); bone(E, Hh, 0.05, jc); const h = m(Hh); g.fillStyle = ninja ? NK.gl : C.chalk; g.beginPath(); g.arc(h.x, h.y, 0.135 * s, 0, 7); g.fill(); g.strokeStyle = ninja ? rgba(C.chalk, 0.32) : rgba(C.night, 0.8); g.lineWidth = 1.5; g.stroke(); }
-  // head: blindfolded until it reads you, eyes open (blue) from the read on
-  const hd = m(P.Hd), hr = 0.11 * s, [rx, ry] = pose.r, [ux, uy] = pose.u;
-  g.fillStyle = ninja ? NK.hd : C.panel; g.beginPath(); g.arc(hd.x, hd.y, hr, 0, 7); g.fill(); g.strokeStyle = rgba(C.chalk, ninja ? 0.3 : 0.5); g.lineWidth = 1; g.stroke();
+  const up = { x: pose.u[0], y: -pose.u[1] }, LX = -0.55, LY = -0.83, OL = Math.max(1.3, s * 0.016);
+  const mix = (a, b, t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+  // a tapered capsule from a to b; returns its across-direction
+  const cap = (a, b, ra, rb) => {
+    const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1e-3, th = Math.atan2(dy, dx), nx = -dy / L, ny = dx / L;
+    g.beginPath(); g.moveTo(a.x + nx * ra, a.y + ny * ra); g.lineTo(b.x + nx * rb, b.y + ny * rb); g.arc(b.x, b.y, rb, th + Math.PI / 2, th - Math.PI / 2, true);
+    g.lineTo(a.x - nx * ra, a.y - ny * ra); g.arc(a.x, a.y, ra, th - Math.PI / 2, th + Math.PI / 2, true); g.closePath(); return { nx, ny };
+  };
+  // cel shading: a lit edge toward the floodlight, the base colour, a shaded far side
+  const shade = (a, b, R, n, base, lite, dark) => {
+    const lit = n.nx * LX + n.ny * LY > 0 ? 1 : -1, mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    const gr = g.createLinearGradient(mx + n.nx * R * lit, my + n.ny * R * lit, mx - n.nx * R * lit, my - n.ny * R * lit);
+    gr.addColorStop(0, lite); gr.addColorStop(0.24, lite); gr.addColorStop(0.24, base); gr.addColorStop(0.64, base); gr.addColorStop(0.64, dark); gr.addColorStop(1, dark); return gr;
+  };
+  // draw a group of parts: all their outlines first, then all their fills, so joints merge cleanly
+  const group = parts => {
+    g.fillStyle = K.line; for (const [a, b, ra, rb] of parts) { cap(a, b, ra * s + OL, rb * s + OL); g.fill(); }
+    for (const [a, b, ra, rb, c] of parts) { const n = cap(a, b, ra * s, rb * s); g.fillStyle = shade(a, b, Math.max(ra, rb) * s, n, c[0], c[1], c[2]); g.fill(); }
+  };
+  const JER = [K.jer, K.jerL, K.jerD], SHO = [K.shorts, K.shortsL, K.shortsD], SOK = [K.sock, K.sockL, K.sockD], SKN = [K.skin, K.skinL, K.skinD];
+  // ---- legs: thigh (skin, or cloth for the ninja), long socks over the shin, boots ----
+  for (const [hip, Kn, F] of [[Q.hipL, Q.KL, Q.FL], [Q.hipR, Q.KR, Q.FR]]) {
+    group([[hip, Kn, 0.085, 0.06, ninja ? SHO : SKN], [Kn, F, 0.062, 0.042, SOK]]);
+    // two thin stripes across the top of the sock
+    { const dx = F.x - Kn.x, dy = F.y - Kn.y, dl = Math.hypot(dx, dy) || 1, nx = -dy / dl, ny = dx / dl; g.strokeStyle = K.band; g.lineCap = 'butt';
+      for (const [t, w] of [[0.13, 0.026], [0.21, 0.012]]) { const c = mix(Kn, F, t), r = (0.062 - 0.02 * t) * s; g.lineWidth = Math.max(1, w * s); g.beginPath(); g.moveTo(c.x + nx * r, c.y + ny * r); g.lineTo(c.x - nx * r, c.y - ny * r); g.stroke(); } }
+    // boot: a rounded block at the foot, with a light edge on the sole
+    const d = { x: F.x - Kn.x, y: F.y - Kn.y }, dl = Math.hypot(d.x, d.y) || 1, ang = Math.atan2(d.y, d.x) - Math.PI / 2, bc = { x: F.x + d.x / dl * 0.025 * s, y: F.y + d.y / dl * 0.025 * s };
+    g.save(); g.translate(bc.x, bc.y); g.rotate(ang);
+    g.fillStyle = K.line; g.beginPath(); g.ellipse(0, 0, 0.068 * s + OL, 0.05 * s + OL, 0, 0, 7); g.fill();
+    g.fillStyle = K.boot; g.beginPath(); g.ellipse(0, 0, 0.068 * s, 0.05 * s, 0, 0, 7); g.fill();
+    g.fillStyle = K.bootL; g.beginPath(); g.ellipse(-0.015 * s, -0.018 * s, 0.035 * s, 0.014 * s, 0, 0, 7); g.fill();
+    g.fillStyle = K.band; g.fillRect(-0.06 * s, 0.03 * s, 0.12 * s, Math.max(1, 0.012 * s));
+    g.restore();
+  }
+  // ---- shorts: the waistband and the top of each thigh ----
+  group([[Q.hipL, Q.hipR, 0.1, 0.1, SHO], [Q.hipL, mix(Q.hipL, Q.KL, 0.5), 0.1, 0.088, SHO], [Q.hipR, mix(Q.hipR, Q.KR, 0.5), 0.1, 0.088, SHO]]);
+  // ---- jersey: broad at the shoulders, tapered to the waist, with side panels, a collar and the number 1 ----
+  const unit = (a, b) => { const x = a.x - b.x, y = a.y - b.y, l = Math.hypot(x, y) || 1; return { x: x / l, y: y / l }; };
+  const add = (p, ...vs) => { let x = p.x, y = p.y; for (const [v, k] of vs) { x += v.x * k * s; y += v.y * k * s; } return { x, y }; };
+  const nL = unit(Q.SL, Q.SR), nR = { x: -nL.x, y: -nL.y }, wL = unit(Q.hipL, Q.hipR), wR = { x: -wL.x, y: -wL.y };
+  const torso = () => {
+    const AL = add(Q.SL, [nL, 0.055], [up, -0.02]), AR = add(Q.SR, [nR, 0.055], [up, -0.02]), WL = add(Q.hipL, [wL, 0.045], [up, 0.03]), WR = add(Q.hipR, [wR, 0.045], [up, 0.03]);
+    const NL = add(Q.N, [nL, 0.06], [up, -0.01]), NR = add(Q.N, [nR, 0.06], [up, -0.01]);
+    g.beginPath(); g.moveTo(NL.x, NL.y);
+    let c = add(Q.SL, [up, 0.07], [nL, 0.02]); g.quadraticCurveTo(c.x, c.y, AL.x, AL.y);
+    c = add(mix(Q.SL, Q.hipL, 0.45), [nL, 0.02]); g.quadraticCurveTo(c.x, c.y, WL.x, WL.y);
+    c = add(Q.P, [up, -0.09]); g.quadraticCurveTo(c.x, c.y, WR.x, WR.y);
+    c = add(mix(Q.SR, Q.hipR, 0.45), [nR, 0.02]); g.quadraticCurveTo(c.x, c.y, AR.x, AR.y);
+    c = add(Q.SR, [up, 0.07], [nR, 0.02]); g.quadraticCurveTo(c.x, c.y, NR.x, NR.y);
+    c = add(Q.N, [up, -0.05]); g.quadraticCurveTo(c.x, c.y, NL.x, NL.y); g.closePath();
+  };
+  const rt0 = { x: -up.y, y: up.x };
+  torso(); g.strokeStyle = K.line; g.lineWidth = OL * 2; g.lineJoin = 'round'; g.stroke();
+  g.fillStyle = shade(Q.N, Q.P, 0.24 * s, { nx: rt0.x, ny: rt0.y }, K.jer, K.jerL, K.jerD); g.fill();
+  g.save(); torso(); g.clip();
+  // side panels running from the armpits to the hem
+  g.fillStyle = K.panel; for (const [Sh, H, n] of [[Q.SL, Q.hipL, nL], [Q.SR, Q.hipR, nR]]) { cap(add(Sh, [n, 0.07], [up, -0.06]), add(H, [n, 0.06]), 0.045 * s, 0.04 * s); g.fill(); }
+  // collar
+  g.fillStyle = K.panel; g.beginPath(); g.arc(Q.N.x, Q.N.y, 0.07 * s, 0, 7); g.fill();
+  g.restore();
+  const tang = Math.atan2(up.y, up.x) + Math.PI / 2;
+  if (K.num) { const c = mix(Q.S, Q.N, 0.05); g.save(); g.translate(c.x, c.y); g.rotate(tang); g.fillStyle = K.num; g.font = '900 ' + Math.max(6, 0.19 * s) + 'px ' + css('--display'); g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('1', 0, 0); g.restore(); }
+  if (K.sash) {
+    // a red sash tied at the hip, tails hanging and swaying
+    const a1 = add(mix(Q.hipL, Q.S, 0.14), [wL, 0.05]), a2 = add(mix(Q.hipR, Q.S, 0.14), [wR, 0.05]); cap(a1, a2, 0.036 * s, 0.036 * s); g.fillStyle = K.sash; g.fill();
+    const kn = mix(a1, a2, 0.22), sw = Math.sin(now / 170) * 0.025;
+    for (const [o, L] of [[-0.035, 0.17], [0.03, 0.14]]) { const e = add(kn, [up, -L], [rt0, o + sw]); cap(kn, e, 0.022 * s, 0.01 * s); g.fill(); }
+    g.beginPath(); g.arc(kn.x, kn.y, 0.03 * s, 0, 7); g.fill();
+  }
+  // ---- arms: long sleeves (the ninja's forearms are wrapped), then the gloves ----
+  for (const [Sh, E, Hh] of [[Q.SL, Q.EL, Q.HL], [Q.SR, Q.ER, Q.HR]]) {
+    group([[Sh, E, 0.066, 0.056, JER], [E, Hh, 0.056, 0.046, JER]]);
+    if (K.wraps) { g.strokeStyle = K.jerL; g.lineWidth = Math.max(0.8, 0.008 * s); for (let i = 1; i < 5; i++) { const c = mix(E, Hh, i / 5.5), n = { x: -(Hh.y - E.y), y: Hh.x - E.x }, nl = Math.hypot(n.x, n.y) || 1; g.beginPath(); g.moveTo(c.x + n.x / nl * 0.05 * s, c.y + n.y / nl * 0.05 * s); g.lineTo(c.x - n.x / nl * 0.05 * s + (Hh.x - E.x) * 0.06, c.y - n.y / nl * 0.05 * s + (Hh.y - E.y) * 0.06); g.stroke(); } }
+    else { g.fillStyle = K.jerD; g.beginPath(); g.arc(E.x, E.y, 0.034 * s, 0, 7); g.fill(); }
+    // glove: a big padded mitt along the forearm, a thumb toward the body, a cuff at the wrist
+    const dx = Hh.x - E.x, dy = Hh.y - E.y, dl = Math.hypot(dx, dy) || 1, ux2 = dx / dl, uy2 = dy / dl, gc = { x: Hh.x + ux2 * 0.025 * s, y: Hh.y + uy2 * 0.025 * s };
+    const toBody = (Q.S.x - Hh.x) * -uy2 + (Q.S.y - Hh.y) * ux2 > 0 ? 1 : -1, th = { x: gc.x - uy2 * 0.095 * s * toBody - ux2 * 0.03 * s, y: gc.y + ux2 * 0.095 * s * toBody - uy2 * 0.03 * s };
+    const ga = Math.atan2(uy2, ux2);
+    g.fillStyle = K.line; g.beginPath(); g.ellipse(gc.x, gc.y, 0.13 * s + OL, 0.112 * s + OL, ga, 0, 7); g.fill(); g.beginPath(); g.arc(th.x, th.y, 0.045 * s + OL, 0, 7); g.fill();
+    const gg = shade({ x: gc.x - ux2, y: gc.y - uy2 }, { x: gc.x + ux2, y: gc.y + uy2 }, 0.12 * s, { nx: -uy2, ny: ux2 }, K.glove, K.gloveL, K.gloveD);
+    g.fillStyle = gg; g.beginPath(); g.ellipse(gc.x, gc.y, 0.13 * s, 0.112 * s, ga, 0, 7); g.fill(); g.beginPath(); g.arc(th.x, th.y, 0.045 * s, 0, 7); g.fill();
+    g.strokeStyle = K.gloveD; g.lineWidth = Math.max(0.8, 0.01 * s); g.lineCap = 'round';
+    for (const o of [-0.045, 0, 0.045]) { const bx = gc.x - uy2 * o * s, by = gc.y + ux2 * o * s; g.beginPath(); g.moveTo(bx + ux2 * 0.02 * s, by + uy2 * 0.02 * s); g.lineTo(bx + ux2 * 0.1 * s, by + uy2 * 0.1 * s); g.stroke(); }
+    const c0 = { x: Hh.x - ux2 * 0.075 * s, y: Hh.y - uy2 * 0.075 * s }, c1 = { x: Hh.x - ux2 * 0.035 * s, y: Hh.y - uy2 * 0.035 * s }; cap(c0, c1, 0.066 * s, 0.07 * s); g.fillStyle = K.cuff; g.fill(); { const c = mix(c0, c1, 0.5), r = 0.07 * s; g.strokeStyle = K.stripe; g.lineWidth = Math.max(1, 0.014 * s); g.lineCap = 'butt'; g.beginPath(); g.moveTo(c.x - uy2 * r, c.y + ux2 * r); g.lineTo(c.x + uy2 * r, c.y - ux2 * r); g.stroke(); }
+  }
+  // ---- neck and head: skin with hair (the ninja wears a hood) ----
+  group([[mix(Q.N, Q.Hd, 0.1), mix(Q.N, Q.Hd, 0.6), 0.045, 0.045, SKN]]);
+  const hd = Q.Hd, hr = 0.115 * s, rt = { x: -up.y, y: up.x };
+  if (K.hood) { // the hood: drapes from the head down onto the shoulders
+    const nb = mix(Q.N, Q.S, 0.25); g.fillStyle = K.line; cap(hd, nb, hr * 1.12 + OL, 0.1 * s + OL); g.fill(); cap(hd, nb, hr * 1.12, 0.1 * s); g.fillStyle = shade(hd, nb, hr * 1.12, { nx: rt.x, ny: rt.y }, K.jer, K.jerL, K.jerD); g.fill(); }
+  g.fillStyle = K.line; g.beginPath(); g.arc(hd.x, hd.y, hr + OL, 0, 7); g.fill();
+  const hg = shade({ x: hd.x - up.x, y: hd.y - up.y }, { x: hd.x + up.x, y: hd.y + up.y }, hr, { nx: rt.x, ny: rt.y }, K.skin, K.skinL, K.skinD);
+  g.fillStyle = hg; g.beginPath(); g.arc(hd.x, hd.y, hr, 0, 7); g.fill();
+  // hair (or the top of the hood): the upper part of the head
+  const ua = Math.atan2(up.y, up.x); g.fillStyle = K.hair; g.beginPath(); g.arc(hd.x, hd.y, hr * 1.02, ua - 1.75, ua + 1.75); g.quadraticCurveTo(hd.x + up.x * hr * 0.15, hd.y + up.y * hr * 0.15, hd.x + Math.cos(ua - 1.75) * hr, hd.y + Math.sin(ua - 1.75) * hr); g.fill();
+  // blindfold across the eyes, knotted at the back with tails that flutter; once it can see, a glowing visor instead
+  const ey = { x: hd.x - up.x * hr * 0.05, y: hd.y - up.y * hr * 0.05 };
   if (blind) {
-    g.strokeStyle = ninja ? NK.bf : C.chalk2; g.lineWidth = hr * 0.75; g.lineCap = 'butt'; if (ninja) { g.shadowColor = NK.bf; g.shadowBlur = 8; }
-    g.beginPath(); g.moveTo(hd.x - rx * hr * 1.05, hd.y + ry * hr * 1.05); g.lineTo(hd.x + rx * hr * 1.05, hd.y - ry * hr * 1.05); g.stroke();
-    // the knot's tails flutter behind the head
-    const kx = hd.x - rx * hr * 1.05, ky = hd.y + ry * hr * 1.05, fl = Math.sin(now / 140) * hr * 0.4;
-    const tl = ninja ? 1.7 : 1; g.lineWidth = hr * 0.3; g.lineCap = 'round'; g.beginPath(); g.moveTo(kx, ky); g.lineTo(kx - rx * hr * 0.9 * tl + ux * fl * tl, ky + ry * hr * 0.9 - uy * fl * 0.5); g.moveTo(kx, ky); g.lineTo(kx - rx * hr * 0.7 * tl - ux * hr * 0.5, ky + ry * hr * 0.7 * tl + uy * hr * 0.5 + fl * tl); g.stroke();
+    const bw = hr * 0.62; g.strokeStyle = K.blind; g.lineWidth = bw; g.lineCap = 'butt'; if (ninja) { g.shadowColor = K.blind; g.shadowBlur = 9; }
+    g.beginPath(); g.moveTo(ey.x - rt.x * hr * 1.06, ey.y - rt.y * hr * 1.06); g.lineTo(ey.x + rt.x * hr * 1.06, ey.y + rt.y * hr * 1.06); g.stroke();
+    g.shadowBlur = 0; g.strokeStyle = K.blindD; g.lineWidth = Math.max(0.8, bw * 0.18);
+    g.beginPath(); g.moveTo(ey.x - rt.x * hr, ey.y - rt.y * hr + bw * 0.32); g.lineTo(ey.x + rt.x * hr, ey.y + rt.y * hr + bw * 0.32); g.stroke();
+    const kx = ey.x - rt.x * hr * 1.06, ky = ey.y - rt.y * hr * 1.06, fl = Math.sin(now / 140) * hr * 0.4, tl = ninja ? 1.8 : 1.1;
+    g.strokeStyle = K.blind; g.lineWidth = hr * 0.28; g.lineCap = 'round'; if (ninja) { g.shadowColor = K.blind; g.shadowBlur = 7; }
+    g.beginPath(); g.moveTo(kx, ky); g.quadraticCurveTo(kx - rt.x * hr * 0.6 * tl, ky - rt.y * hr * 0.6 * tl + fl * 0.5, kx - rt.x * hr * 1.0 * tl - up.x * fl, ky - rt.y * hr * 1.0 * tl - up.y * fl + hr * 0.2);
+    g.moveTo(kx, ky); g.quadraticCurveTo(kx - rt.x * hr * 0.5 * tl, ky - rt.y * hr * 0.5 * tl + hr * 0.3, kx - rt.x * hr * 0.8 * tl + up.x * fl * 0.6, ky - rt.y * hr * 0.8 * tl + hr * 0.55 + fl); g.stroke();
+    g.shadowBlur = 0;
   } else {
-    g.strokeStyle = C.cool; g.lineWidth = hr * 0.45; g.shadowColor = C.cool; g.shadowBlur = 10;
-    g.beginPath(); g.moveTo(hd.x - rx * hr * 0.6, hd.y + ry * hr * 0.6); g.lineTo(hd.x + rx * hr * 0.6, hd.y - ry * hr * 0.6); g.stroke();
+    g.strokeStyle = C.cool; g.lineWidth = hr * 0.36; g.lineCap = 'round'; g.shadowColor = C.cool; g.shadowBlur = 10;
+    g.beginPath(); g.moveTo(ey.x - rt.x * hr * 0.62, ey.y - rt.y * hr * 0.62); g.lineTo(ey.x + rt.x * hr * 0.62, ey.y + rt.y * hr * 0.62); g.stroke();
   }
   g.shadowBlur = 0; g.lineCap = 'butt';
   g.restore();
@@ -4021,7 +4132,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.02-2333';
+  var VERSION = '2026.11.02-2348';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess v' + (window.APP_VERSION || '1.00') + ' · build ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
