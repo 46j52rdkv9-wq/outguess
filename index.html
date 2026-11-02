@@ -1923,6 +1923,7 @@ const SFX = {
 
 // ---------- layout ----------
 let W = 0, H = 0, DPR = 1, geo = {}, crowd = [];
+const BALL_DROP = 56; // about an inch on a phone
 function layout() {
   const r = app.getBoundingClientRect(); W = r.width; H = r.height; DPR = Math.min(2, window.devicePixelRatio || 1);
   cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); g.setTransform(DPR, 0, 0, DPR, 0, 0);
@@ -1933,7 +1934,10 @@ function layout() {
   const gw = Math.min(W * 0.84, 520, avail * 0.95), gh = gw * 0.33;
   const gyt = hb + clamp(avail * 0.13, menuOn ? 34 : 50, 86);
   geo = { gw, gh, gx0: (W - gw) / 2, gyt, gyb: gyt + gh, hb, bt };
-  geo.ballY = bt - clamp(avail * 0.1, 38, 80);
+  // ballY0 is where the ball used to sit: swipe bands are still sized from it, so swipes measure exactly as before.
+  // In a match the ball is drawn about an inch lower (looks only)
+  geo.ballY0 = bt - clamp(avail * 0.1, 38, 80);
+  geo.ballY = menuOn ? geo.ballY0 : Math.min(geo.ballY0 + BALL_DROP, H - 96);
   geo.r0 = clamp(gw * 0.06, 13, 26);
   geo.step = Math.min(gw * 0.12, (W - 60) / 7);
   geo.horizon = gyt - gh * 0.22;
@@ -2188,7 +2192,7 @@ cv.addEventListener('pointerdown', e => {
   beginSwipe(p, e.pointerId);
 });
 function beginSwipe(p, id) {
-  const band = Math.max(26, Math.min(H * 0.045, (geo.ballY - geo.hb) / 10.5));
+  const band = Math.max(26, Math.min(H * 0.045, (geo.ballY0 - geo.hb) / 10.5));
   G.touched = true; paintSlider();
   sw = { id, s: p, pts: [p], band, bf: band / H, cr: [[0, 0, G.clock]], crPx: [], next: 1, commit: null, livePred: G.peekPred, livePeak: G.peekPred ? peakOf(G.peekPred) : null, moved: false, pathLen: 0, minY: p.y, startNow: performance.now(), touchS: clockS(), moveS: null, gs: G.clock };
   audio();
@@ -3474,7 +3478,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.02-1832';
+  var VERSION = '2026.11.02-1841';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess app · version ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
