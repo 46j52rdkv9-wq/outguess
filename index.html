@@ -309,7 +309,20 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .seg button{min-height:38px;border:0;border-radius:19px;background:none;color:var(--chalk-2);font:700 13px/1 var(--body);letter-spacing:.08em;text-transform:uppercase}
 .seg button.on{background:var(--chalk);color:var(--night)}
 .seg button.on.sup{background:var(--cool)}
-.mrow{display:grid;grid-template-columns:1fr 2.2fr;gap:10px;align-items:center}
+.mrow{display:grid;grid-template-columns:1fr 1.7fr 1fr;gap:10px;align-items:center}
+.mrow .ghost.online{border-color:color-mix(in srgb,var(--good) 65%,transparent);color:var(--good)}
+.nameinp,.joinrow input{min-height:44px;border-radius:22px;border:1.5px solid var(--line-strong);background:var(--night);color:var(--chalk);padding:0 16px;font:600 16px/1 var(--body)}
+.nameinp{width:44%;min-width:140px;text-align:right}
+.onbox{display:grid;gap:12px}
+.onbox[hidden]{display:none}
+.joinrow{display:flex;gap:8px}
+.joinrow input{flex:1;min-width:0;font:700 18px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase}
+.joinrow input::placeholder{font:500 15px/1 var(--body);letter-spacing:0;text-transform:none;color:var(--chalk-2)}
+.codebox{justify-items:center;text-align:center;padding:18px 14px;border-radius:16px;background:var(--panel);box-shadow:inset 0 0 0 1.5px var(--good)}
+.codebox b{font:900 54px/1 var(--display);letter-spacing:.12em;color:var(--good);-webkit-user-select:text;user-select:text}
+.codebox p{margin:0;font:500 15px/1.35 var(--body);color:var(--chalk-2);max-width:32ch}
+.codebox .btnrow{width:100%}
+#app.online .sub{visibility:hidden}
 .mrow .ghost{background:var(--night);min-height:52px}
 .mrow .ghost.on{border-color:var(--cool);color:var(--cool)}
 .mrow .ghost.soon{opacity:.55}
@@ -386,7 +399,7 @@ h1,h2,h3{margin:0;text-wrap:balance}
         <button class="tile" id="mTrainer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18V6h18v12"/><circle cx="16.5" cy="10" r="2.2"/><path d="M8 21c0-5 3-8 7-10" stroke-dasharray="2 2.5"/></svg>Shot trainer</button>
         <button class="tile store" id="mStore"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg>Store</button>
       </div>
-      <div class="mrow"><button class="ghost" id="mTrain">Train</button><button class="cta" id="mPlay">Play</button></div>
+      <div class="mrow"><button class="ghost" id="mTrain">Train</button><button class="cta" id="mPlay">Play</button><button class="ghost online" id="mOnline">Online</button></div>
       <small id="mBest"></small>
     </div>
   </div>
@@ -454,6 +467,28 @@ h1,h2,h3{margin:0;text-wrap:balance}
       <div class="coinwin" id="oCoin" hidden><span class="coin big"></span><p><b>+1 coin.</b> Spend it to teach your Goalie to block one of your shots.</p><button class="pill amber" id="oTrainer">Shot trainer</button></div>
       <button class="cta" id="again">Play again</button>
       <div class="btnrow"><button class="ghost" id="oBrain">See its brain</button><button class="ghost" id="oMenu">Menu</button></div>
+    </div>
+  </section>
+
+  <section class="sheet" id="online" hidden>
+    <div class="inner" style="align-content:start">
+      <div class="brainhead">
+        <div><h2>Play a friend</h2><p>First to 10. A coin flip decides who shoots first. You shoot at their Goalie, they shoot at yours, one shot each.</p></div>
+        <button class="pill" id="closeOnline">Back</button>
+      </div>
+      <div class="setrow"><p>Your name<small>What your friends see.</small></p><input class="nameinp" id="onName" maxlength="16" autocomplete="off" spellcheck="false"></div>
+      <div class="onbox" id="onIdle">
+        <button class="cta" id="onCreate">Challenge a friend</button>
+        <div class="joinrow"><input id="onCode" placeholder="Got a code? Type it" maxlength="7" autocomplete="off" autocapitalize="characters" spellcheck="false"><button class="pill amber" id="onJoin">Join</button></div>
+      </div>
+      <div class="onbox codebox" id="onWait" hidden>
+        <span class="lbl">Your match code</span>
+        <b id="onCodeBig">––––––</b>
+        <p id="onWaitMsg">Send this code to your friend. The match starts when they join.</p>
+        <div class="btnrow"><button class="pill amber" id="onShare">Share code</button><button class="pill" id="onCancel">Cancel</button></div>
+      </div>
+      <p class="bkmsg" id="onMsg" hidden></p>
+      <div class="sec"><h3>Your rivals</h3><ul class="notes" id="onRivals"></ul></div>
     </div>
   </section>
 
@@ -1833,6 +1868,7 @@ function diveTick() {
   }
   // after the ball arrives (or a scuff), no more commands: the body just flows until the next ball is set up
   B2.advance(R, Math.min(tNow, R.s.t + 0.25));
+  if (D.track && D.track.length < 400) D.track.push([R.s.t, Float32Array.from(R.s.X), Float32Array.from(R.s.Y)]);
 }
 
 // ---------- persistent state ----------
@@ -2006,11 +2042,12 @@ function nextShot() {
   G.state = 'ready'; G.shot = null; G.dive = null; G.ripple = null; G.peekOn = false; G.peekPred = null; G.touched = false; G.lastTick = 0;
   G.readyClock = G.clock; G.slideFrom = G.pos; G.slideLog = [];
   // bait: take a stance once per shot, before you touch the ball
-  G.baitOn = S.bait; G.gap = 0; if (G.baitOn) G.gap = chooseGap();
+  G.baitOn = S.bait && G.mode !== 'online'; G.gap = 0; if (G.baitOn) G.gap = chooseGap();
   $('#banner').hidden = true;
   hint.textContent = G.justSaved ? `Saved · ${fmt(B.total)} shots on file` : 'Swipe up from the ball';
   G.justSaved = false;
-  if (G.gk === WIN_AT - 1 && !G.gkMpShown) { G.gkMpShown = true; showNote("Goalie's match point", 'One more stop and the Goalie wins.', 3000); }
+  if (G.mode !== 'online' && G.gk === WIN_AT - 1 && !G.gkMpShown) { G.gkMpShown = true; showNote("Goalie's match point", 'One more stop and the Goalie wins.', 3000); }
+  else if (G.mode === 'online') {}
   else if (G.events > 0 && bodyNote()) {}
   else if (B.flat.length >= 8 && G.events > 0 && G.events % 4 === 0) goalieNote();
   updateHUD();
@@ -2045,19 +2082,20 @@ function updateHUD() {
   if (rY.textContent !== String(G.you)) { rY.classList.remove('bump'); void rY.offsetWidth; rY.classList.add('bump'); }
   if (rG.textContent !== String(G.gk)) { rG.classList.remove('bump'); void rG.offsetWidth; rG.classList.add('bump'); }
   rY.textContent = G.you; rG.textContent = G.gk;
-  $('#rYouL').textContent = G.mode === 'watch' ? 'Bot' : 'You'; $('#rGkL').textContent = G.mode === 'mine' ? 'Goalie' : 'Super';
+  $('#rYouL').textContent = G.mode === 'watch' ? 'Bot' : 'You'; $('#rGkL').textContent = G.mode === 'online' && ON.opp ? ON.opp.name : G.mode === 'mine' ? 'Goalie' : 'Super';
+  app.classList.toggle('online', G.mode === 'online');
   rY.classList.toggle('mp', G.you === WIN_AT - 1); rG.classList.toggle('mp', G.gk === WIN_AT - 1);
   // the race: your pips fill from the left, the Goalie's from the right; first to the middle wins
   const pips = $('#pips').children; $('#pips').classList.toggle('sup', G.mode !== 'mine');
   for (let i = 0; i < 2 * WIN_AT; i++) pips[i].className = i < WIN_AT ? (i < G.you ? 'you' : '') : (2 * WIN_AT - 1 - i < G.gk ? 'gk' : '');
   const mp = G.you === WIN_AT - 1 || G.gk === WIN_AT - 1;
-  $('#raceL').textContent = G.mode === 'watch' ? 'Watching it train' : mp ? 'Match point' : 'First to ' + WIN_AT; $('#raceL').classList.toggle('mp', mp && G.mode !== 'watch');
+  $('#raceL').textContent = G.mode === 'watch' ? 'Watching it train' : G.mode === 'online' && G.you >= WIN_AT && G.you === G.gk ? 'Sudden death' : mp ? 'Match point' : G.mode === 'online' && ON.opp ? 'vs ' + ON.opp.name : 'First to ' + WIN_AT; $('#raceL').classList.toggle('mp', mp && G.mode !== 'watch');
   const a = readAcc();
   $('#readPct').textContent = a == null ? '–' : pc(a);
   $('#readFill').style.width = a == null ? '0' : (a * 100) + '%';
   const busy = G.mode !== 'watch' && (G.state === 'flying' || G.state === 'result');
   $('#btnBrain').disabled = busy; $('#btnMenu').disabled = busy;
-  $('#btnBrain').hidden = G.mode === 'watch';
+  $('#btnBrain').hidden = G.mode === 'watch' || G.mode === 'online';
   paintSlider();
 }
 function paintNeurons() {}
@@ -2127,7 +2165,7 @@ function goaliePoint() { G.gk++; G.streak = 0; G.gkStreak = (G.gkStreak || 0) + 
 // every shot, timeout and scuff goes into the current match chunk
 function recordEvent(ev) {
   const c = G.chunk; c.shots.push(ev); c.score = G.score;
-  if (trainable(ev)) { B.flat.push({ c, i: c.shots.length - 1 }); if (B.flat.length > 1200) B.flat.shift(); bpTest(B, B.flat[B.flat.length - 1]); learn(B); B.total++; if (B === MY) genLearn(30); }
+  if (trainable(ev) && G.mode !== 'online') { B.flat.push({ c, i: c.shots.length - 1 }); if (B.flat.length > 1200) B.flat.shift(); bpTest(B, B.flat[B.flat.length - 1]); learn(B); B.total++; if (B === MY) genLearn(30); }
   if (ev.cr.length > 1) { G.prevEvs.unshift(ev); if (G.prevEvs.length > 3) G.prevEvs.pop(); }
   G.prevPos = ev.pos; G.lastOut = ev.out; G.events++;
   if (++G.unsaved >= 5) { persist(); G.justSaved = true; }
@@ -2140,6 +2178,7 @@ function scuff(msg, s) {
   SFX.miss(); buzz(60);
   showBanner('bad', 'Scuffed', '', 'You stopped mid-swipe. Goalie point.', 2200);
   hint.textContent = ''; G.state = 'result'; G.shot = null; G.resultUntil = performance.now() + 2200;
+  if (G.mode === 'online') onMine(null, G.chunk.shots[G.chunk.shots.length - 1], 0);
   updateHUD();
 }
 function timeout() {
@@ -2150,6 +2189,7 @@ function timeout() {
   SFX.miss(); buzz(60);
   showBanner('bad', "Time's up", '', 'Too slow. Goalie point.');
   hint.textContent = ''; G.touched = false; G.state = 'result'; G.shot = null; G.resultUntil = performance.now() + 1900;
+  if (G.mode === 'online') onMine(null, G.chunk.shots[G.chunk.shots.length - 1], 0);
   updateHUD();
 }
 function onCross(k) {
@@ -2168,7 +2208,7 @@ function commit(k) {
   const tNow = performance.now(), sc = { x0: G.kx * GW_M, L, see: tierSee(L), rem: null, flight: null, ball: null, Test: tEst, blind: [{ t: 0, h: heatFeats(q), ...turnInfo(sw.cr, k, k), Test: tEst, bd: bpGuess(B, sw.cr, sw.bf, G.pos, k, k, cx) }], cells: heatCells(q),
     open: 0, eyes: [{ t: 0, b: projBall(sw.cr, sw.bf, G.pos, k) }] };
   sw.commit = { k, x, h: f.h, pred: q, peak, cx, md: cx.md, tm: cx.tm, sc: cx.sc, bait: cx.bait, gap: cx.gap, sld: cx.sld, kx: G.kx, tEst, tNow, px: sw.crPx[k - 1] };
-  G.dive = { R: B2.run(B.m2.th, sc), th: B.m2.th, sc, tC: tNow, gap: null };
+  G.dive = { R: B2.run(B.m2.th, sc), th: B.m2.th, sc, tC: tNow, gap: null, track: G.mode === 'online' ? [] : null };
   SFX.read(); buzz(6);
 }
 // still blindfolded after the read: at each dot it feels how sharply you turned (not which way) and Brain 1 redraws the heat map
@@ -2245,12 +2285,12 @@ function release(s) {
   const D = G.dive, eb = EYES_FROM_READ; diveTick(); D.sc.eyes.push({ t: relT, b: [bxm, bym] });
   Object.assign(D.sc, { rem: relT, flight: T / 1000, ball: [bxm, bym] });
   // a shot it was trained on: it plays the trained block from the moment it read you, instead of thinking
-  const bk = !outcome && G.mode === 'mine' ? bookMatch(MY, G.pos, gx, gy, D.sc.x0) : null;
-  if (bk) { const R = B2.run(D.th, D.sc); R.plan = { plan: Float64Array.from(bk.plan), K: 4, tS: 0, span: D.sc.rem + D.sc.flight }; B2.advance(R, D.R.s.t); D.R = R; D.book = bk; bk.uses = (bk.uses || 0) + 1; }
+  const bk = !outcome && (G.mode === 'mine' || G.mode === 'online') ? bookMatch(B, G.pos, gx, gy, D.sc.x0) : null;
+  if (bk) { const R = B2.run(D.th, D.sc); R.plan = { plan: Float64Array.from(bk.plan), K: 4, tS: 0, span: D.sc.rem + D.sc.flight }; B2.advance(R, D.R.s.t); D.R = R; D.book = bk; bk.uses = (bk.uses || 0) + 1; if (D.track) D.track.length = 0; }
   const rec = { g: G.chunk.n, md: cm.md, cr: s.cr.map(fixCr), bf: r3(s.bf), n: Math.min(n, NB), pos: G.pos, mv: G.pos - G.prevPos, lo: G.lastOut, tm: cm.tm, sc: cm.sc, bait: cm.bait, gap: cm.gap, sld: cm.sld,
     tx: r3(gx), ty: r3(gy), k: cm.k, eo: eb, aim: r3(clamp(aimSlope / 1.5, -1, 1)), strike: r3(clamp(vn / 5, 0, 1.5)), lv: G.level, ft: Math.round(T), rem: Math.round(relT * 1000), kx: r3(cm.kx), gk: {}, at: Date.now() };
   G.shot = { sx: ballX(G.pos), sy: geo.ballY, gx, gy, pred: cm.pred, peak: cm.peak, k: cm.k, T, curve, pw, outcome, rec, x: cm.x, h: cm.h,
-    trace: pts.map(p => ({ x: p.x, y: p.y })), lastDot: null, crPx: s.crPx.slice(), crSp: bandVec(s.cr, s.bf, NB).sp, commitPx: cm.px, t0: now, resolved: false };
+    trace: pts.map(p => ({ x: p.x, y: p.y, t: p.t })), lastDot: null, crPx: s.crPx.slice(), crSp: bandVec(s.cr, s.bf, NB).sp, commitPx: cm.px, t0: now, resolved: false };
   G.lastShotClock = G.clock;
   G.state = 'flying'; hint.textContent = ''; hideNote();
   SFX.kick(); buzz(12); updateHUD();
@@ -2278,10 +2318,10 @@ function resolveShot() {
   // Brain 2 → Brain 1: misses that let a goal in count more than ones the body saved anyway
   // a goal that only just beat the body (within 0.6 m) counts most: a better read there turns it into a save
   rec.w = outNet === 0 ? (rec.gk && rec.gk.gap != null && rec.gk.gap < 0.6 ? 2 : 1.5) : outNet === 1 ? 0.8 : 1;
-  if (onTarget) B.tau = clamp(B.tau + 0.04 * (sh.peak.cov - (hit ? 1 : 0)), 0.6, 2.5);
+  if (onTarget && G.mode !== 'online') B.tau = clamp(B.tau + 0.04 * (sh.peak.cov - (hit ? 1 : 0)), 0.6, 2.5);
   rec.out = outNet; rec.hit = hit ? 1 : 0;
   recordEvent(rec);
-  if (trainable(rec)) trainShot(B, B.flat[B.flat.length - 1], rec);
+  if (trainable(rec) && G.mode !== 'online') trainShot(B, B.flat[B.flat.length - 1], rec);
   B.lastX = sh.x; B.lastH = sh.h; B.lastP = sh.pred;
   if (onTarget) { B.log.push(hit ? 1 : 0); if (B.log.length > 40) B.log.shift(); const ra = readAcc(); if (ra != null) { B.acc.push(ra); if (B.acc.length > 120) B.acc.shift(); } }
   paintNeurons(sh.h);
@@ -2296,6 +2336,7 @@ function resolveShot() {
     : sh.outcome === 'wide' ? 'Just wide.' : 'Over the bar.';
   showBanner(good ? 'good' : 'bad', sh.outcome === 'goal' ? 'Goal!' : big, '', line);
   G.state = 'result'; G.resultUntil = performance.now() + 1900;
+  if (G.mode === 'online') onMine(sh, rec, hit);
   updateHUD();
 }
 function gameOver() {
@@ -2543,6 +2584,7 @@ function exitWatch() { sw = null; AUTO.plan = null; G.shot = null; G.dive = null
 // ---------- buttons ----------
 $('#btnMenu').addEventListener('click', () => {
   if (G.mode === 'watch') return exitWatch();
+  if (G.mode === 'online') return onLeaveTap();
   if (G.state === 'flying' || G.state === 'result') return;
   sw = null; $('#banner').hidden = true; hideNote(); persist(); showMenu();
 });
@@ -2620,7 +2662,7 @@ function fillStats(now = performance.now()) {
   $('#mOdds').textContent = o == null ? '?' : Math.round(o * 100) + '%';
   $('#mMood').textContent = o == null ? (sup ? 'Still sizing things up' : 'Needs to see you shoot') : moodOf(o);
   const res = $('#mRes'); if (res.hidden !== !R) { res.hidden = !R; requestAnimationFrame(layout); }
-  if (R) { res.classList.toggle('won', R.won); $('#mResT').textContent = (R.won ? 'You win ' : (R.sup ? 'Super Goalie wins ' : 'Goalie wins ')) + `${R.you}–${R.gk}`; $('#mResC').hidden = !R.coin; }
+  if (R) { res.classList.toggle('won', R.won); $('#mResT').textContent = (R.opp ? (R.won ? 'You beat ' + R.opp + ' ' : R.opp + ' wins ') : (R.won ? 'You win ' : (R.sup ? 'Super Goalie wins ' : 'Goalie wins '))) + `${R.you}–${R.gk}`; $('#mResC').hidden = !R.coin; }
 }
 function fillMenu(msg) {
   const sup = S.sel === 'super';
@@ -2798,6 +2840,248 @@ $('#stItems').addEventListener('click', e => {
   persist(); paintStore(); fillMenu();
 });
 $('#closeStore').addEventListener('click', () => { $('#store').hidden = true; fillMenu(); });
+// ---------- ONLINE: play a friend ----------
+// One shot each, first to 10. Your phone runs a frozen copy of their Goalie when you shoot; theirs runs yours.
+// Each shot sends only what happened: your swipe, where the ball went, the result, and how the Goalie moved.
+// Points: a goal is the shooter's, a save or miss is the Goalie owner's. A match ends after a full round (one shot
+// each) when someone has 10 and is ahead; level at 10 or more means sudden death, round by round.
+const SB_URL = 'https://cxdgzbrndygovgbylowo.supabase.co', SB_KEY = 'sb_publishable_MGM5XntamVxo0Ja2y0s79Q_Ej7D2zvi';
+const ON = { sb: null, uid: null, code: null, side: null, phase: null, opp: null, oppPid: null, oppName: null, first: null, n: 0, inbox: new Map(), outbox: [], busy: false, lastPoll: 0, polls: 0, leaveAt: 0, waitSince: 0, over: false, flipUntil: 0 };
+function curKit() { return G.mode === 'online' ? (G.mine ? (ON.opp && ON.opp.kit) || 'classic' : S.kit) : G.mode === 'mine' ? S.kit : 'classic'; }
+async function sbClient() {
+  if (ON.sb && ON.uid) return ON.sb;
+  if (!window.supabase) await new Promise((res, rej) => { const el = document.createElement('script'); el.src = 'supabase.js'; el.onload = res; el.onerror = () => rej(new Error('offline')); document.head.appendChild(el); });
+  ON.sb = ON.sb || window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'outguess-online-auth' } });
+  let { data } = await ON.sb.auth.getSession();
+  if (!data.session) { const r = await ON.sb.auth.signInAnonymously(); if (r.error) throw r.error; data = { session: r.data.session }; }
+  ON.uid = data.session.user.id; return ON.sb;
+}
+const CODE_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const newCode = () => { const a = new Uint8Array(6); try { crypto.getRandomValues(a); } catch (e) { for (let i = 0; i < 6; i++) a[i] = Math.random() * 256; } return Array.from(a, b => CODE_ABC[b % CODE_ABC.length]).join(''); };
+const fmtCode = c => c ? c.slice(0, 3) + '-' + c.slice(3) : '';
+const cleanCode = t => (t || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+// their Goalie, rebuilt from what their phone sent: their read on you, their body, their trained shots, their kit
+function goalieFrom(sn) {
+  return { pid: sn.pid, name: sn.name, kit: sn.kit || 'classic', net: unpackNet(sn.b1), tau: sn.tau || 1, bp: unpackFlat(sn.bp), m2: { th: unpackW(sn.b2), gen: 0, hist: [], trainMs: 0, shots: 0 },
+    book: sn.book || [], games: [], flat: [], log: [], acc: [], loss: [], total: 0, catchup: 0, lastX: null, lastH: null, lastP: null, body: freshBody() };
+}
+// the heat map and the Goalie's movement, packed small
+function packQ(q) { let m = 0; for (const v of q) m = Math.max(m, v); const u = new Uint8Array(q.length); q.forEach((v, i) => { u[i] = Math.round(v / (m || 1) * 255); }); let s = ''; for (const b of u) s += String.fromCharCode(b); return { m: r3(m), b: btoa(s) }; }
+function unpackQ(o) { if (!o) return null; const b = atob(o.b), q = []; let t = 0; for (let i = 0; i < b.length; i++) { const v = b.charCodeAt(i) / 255 * o.m; q.push(v); t += v; } return q.map(v => v / (t || 1)); }
+const b64i16 = a => { const u = new Uint8Array(a.buffer); let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
+const unb64i16 = s => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return new Int16Array(u.buffer); };
+function motionPack(D) {
+  const tr = D.track ? D.track.slice() : [];
+  tr.push([D.R.s.t, Float32Array.from(D.R.s.X), Float32Array.from(D.R.s.Y)]);
+  // a little more of the fall after the ball arrives (no more commands, the body just flows)
+  try { const R2 = { th: D.th, sc: D.sc, s: structuredClone(D.R.s), frozen: true }; for (let k = 1; k <= 21; k++) { B2.advance(R2, D.R.s.t + k / 30); tr.push([R2.s.t, Float32Array.from(R2.s.X), Float32Array.from(R2.s.Y)]); } } catch (e) {}
+  tr.sort((a, b) => a[0] - b[0]);
+  const N = Math.min(150, Math.floor(tr[tr.length - 1][0] * 30) + 1), out = new Int16Array(N * 32);
+  let j = 0;
+  for (let i = 0; i < N; i++) {
+    const t = i / 30; while (j < tr.length - 2 && tr[j + 1][0] < t) j++;
+    const a = tr[j], b = tr[Math.min(j + 1, tr.length - 1)], f = b[0] > a[0] ? clamp((t - a[0]) / (b[0] - a[0]), 0, 1) : 0;
+    for (let p = 0; p < 16; p++) { out[i * 32 + p * 2] = Math.round((a[1][p] + (b[1][p] - a[1][p]) * f) * 1000); out[i * 32 + p * 2 + 1] = Math.round((a[2][p] + (b[2][p] - a[2][p]) * f) * 1000); }
+  }
+  return { mo: b64i16(out), mf: N };
+}
+// ---------- the Online sheet ----------
+function onMsg(t, cls = '') { const m = $('#onMsg'); m.hidden = !t; m.textContent = t || ''; m.className = 'bkmsg ' + cls; }
+function onFail(e) {
+  const m = String(e && e.message || e), app = /github\.io$|localhost/.test(location.hostname);
+  onMsg(/offline|fetch|network|load/i.test(m) ? (app ? 'No connection. Check your internet and try again.' : 'Online play works in the Outguess app on your phone.') : /anonymous/i.test(m) ? 'Online sign-in is switched off on the server right now.' : 'Something went wrong: ' + m, 'bad');
+}
+function paintRivals() {
+  const os = [...OPPS.values()].sort((a, b) => b.last - a.last), ul = $('#onRivals');
+  ul.innerHTML = os.length ? '' : '<li class="empty">Nobody yet. Your Goalie keeps a separate scouting file on every friend you play.</li>';
+  for (const o of os) { const li = document.createElement('li'), d = document.createElement('div'), sm = document.createElement('small'); d.textContent = `${o.name} · you ${o.wins}–${o.losses}`; sm.textContent = `${fmt(o.total)} of their shots studied · last played ${new Date(o.last).toLocaleDateString([], { month: 'short', day: 'numeric' })}`; d.appendChild(sm); li.appendChild(d); ul.appendChild(li); }
+}
+function openOnline() {
+  $('#onName').value = S.name || ''; paintRivals();
+  const hosting = ON.phase === 'hosting'; $('#onIdle').hidden = hosting; $('#onWait').hidden = !hosting;
+  if (hosting) $('#onCodeBig').textContent = fmtCode(ON.code);
+  if (!ON.phase) onMsg('');
+  $('#online').hidden = false; $('#online').scrollTop = 0;
+}
+$('#mOnline').addEventListener('click', () => { audio(); openOnline(); });
+$('#closeOnline').addEventListener('click', () => { $('#online').hidden = true; fillMenu(); });
+$('#onName').addEventListener('change', e => { const v = e.target.value.trim().slice(0, 16); if (v) { S.name = v; persist(); } else e.target.value = S.name; });
+$('#onCode').addEventListener('input', e => { const c = cleanCode(e.target.value); e.target.value = c.length > 3 ? fmtCode(c) : c; });
+$('#onCreate').addEventListener('click', async () => {
+  audio(); onMsg('Connecting…');
+  try {
+    const sb = await sbClient();
+    for (let i = 0; i < 4 && ON.phase !== 'hosting'; i++) {
+      const code = newCode(), { error } = await sb.from('matches').insert({ code, host_pid: S.pid, host_name: S.name, state: 'waiting' });
+      if (!error) Object.assign(ON, { code, side: 'host', phase: 'hosting', waitSince: performance.now() });
+      else if (!/duplicate|unique/i.test(error.message)) throw error;
+    }
+    if (ON.phase !== 'hosting') throw new Error('could not make a code');
+    onMsg(''); $('#onCodeBig').textContent = fmtCode(ON.code); $('#onIdle').hidden = true; $('#onWait').hidden = false;
+  } catch (e) { onFail(e); }
+});
+$('#onShare').addEventListener('click', async () => {
+  const t = `Play me in Outguess! Open the app, tap Online, and type this code: ${fmtCode(ON.code)}\nhttps://46j52rdkv9-wq.github.io/outguess/`;
+  try { if (navigator.share) await navigator.share({ text: t }); else { await navigator.clipboard.writeText(t); $('#onShare').textContent = 'Copied'; setTimeout(() => { $('#onShare').textContent = 'Share code'; }, 1500); } } catch (e) {}
+});
+$('#onCancel').addEventListener('click', () => { const c = ON.code; onReset(); $('#onIdle').hidden = false; $('#onWait').hidden = true; onMsg(''); if (ON.sb && c) ON.sb.from('matches').update({ state: 'done' }).eq('code', c).then(() => {}, () => {}); });
+$('#onJoin').addEventListener('click', async () => {
+  audio(); const code = cleanCode($('#onCode').value);
+  if (code.length !== 6) return onMsg('Codes are 6 letters and numbers, like K7Q-4ZP.', 'bad');
+  if (ON.phase) return onMsg('You already have a match going.', 'bad');
+  onMsg('Joining…');
+  try {
+    const sb = await sbClient();
+    const { data: m, error } = await sb.from('matches').select('code,host,host_pid,host_name,state,guest').eq('code', code).maybeSingle();
+    if (error) throw error;
+    if (!m) return onMsg('No match with that code. Check it and try again.', 'bad');
+    if (m.host === ON.uid) return onMsg("That's your own code. Send it to a friend.", 'bad');
+    if (m.state !== 'waiting' || m.guest) return onMsg('That match already started or was cancelled.', 'bad');
+    const snap = goalieSnapshot(m.host_pid, m.host_name || 'Friend');
+    const { data: up, error: e2 } = await sb.from('matches').update({ guest: ON.uid, guest_pid: S.pid, guest_name: S.name, guest_goalie: snap, state: 'joined', updated_at: new Date().toISOString() }).eq('code', code).is('guest', null).select('code');
+    if (e2) throw e2;
+    if (!up || !up.length) return onMsg('Someone else joined that match first.', 'bad');
+    Object.assign(ON, { code, side: 'guest', phase: 'joining', oppPid: m.host_pid, oppName: m.host_name || 'Friend', waitSince: performance.now() });
+    onMsg(`Joined ${ON.oppName}'s match. Flipping the coin…`, 'ok');
+  } catch (e) { onFail(e); }
+});
+function onReset() { Object.assign(ON, { code: null, side: null, phase: null, opp: null, oppPid: null, oppName: null, first: null, n: 0, inbox: new Map(), over: false }); G.rep = null; G.mine = false; }
+// ---------- the match ----------
+const shooterOf = n => (n % 2 === 0) === (ON.first === 'host') ? 'host' : 'guest';
+function onStart({ oppPid, oppName, oppGoalie, first }) {
+  if (ON.phase === 'playing') return;
+  if (!oppGoalie || oppGoalie.b2ver !== BRAIN2_VER || oppGoalie.brains !== BRAINS_VER) { onReset(); onMsg('One of you needs to update Outguess first: open it, go to the menu and let it restart.', 'bad'); return; }
+  oppGet(oppPid, oppName);
+  Object.assign(ON, { phase: 'playing', opp: goalieFrom(oppGoalie), oppPid, oppName, first, n: 0, inbox: new Map(), over: false });
+  $('#online').hidden = true; hideMenu();
+  setMode('online'); B = ON.opp;
+  G.iq0 = goalieIQ(MY); MENU.res = null; DEMO.cur = null;
+  Object.assign(G, { score: 0, you: 0, gk: 0, streak: 0, gkStreak: 0, goals: 0, peeks: 0, level: 1, prevEvs: [], lastOut: -1, lastNote: '', clock: 0, lastShotClock: -1, pos: 0, prevPos: 0,
+    chunk: { n: 'on-' + ON.code, at: Date.now(), shots: [], online: true }, events: 0, winBonus: 0, gkMpShown: false, shot: null, dive: null, rep: null });
+  hideNote(); G.mine = first === ON.side;
+  showBanner('good', 'Coin flip', '', G.mine ? 'You shoot first.' : `${oppName} shoots first.`, 2400);
+  G.state = 'flip'; ON.flipUntil = performance.now() + 2400; hint.textContent = ''; updateHUD(); SFX.note();
+}
+function onNextTurn() {
+  G.rep = null; G.mine = shooterOf(ON.n) === ON.side;
+  if (G.mine) { B = ON.opp; nextShot(); hint.textContent = 'Your shot'; }
+  else {
+    G.state = 'theirs'; G.shot = null; G.dive = null; G.ripple = null; $('#banner').hidden = true;
+    hint.textContent = `${ON.oppName} is shooting…`; ON.waitSince = performance.now(); updateHUD();
+    if (ON.inbox.has(ON.n)) onReplayStart(ON.inbox.get(ON.n));
+  }
+}
+// your shot is done: send it
+function onMine(sh, rec, hit) {
+  const D = G.dive, data = { v: 1, rec, pos: rec ? rec.pos : G.pos, out: sh ? sh.outcome : rec && rec.out === 3 ? 'time' : 'scuff' };
+  if (sh && D) {
+    const band = (rec.bf || 0.04) * H, P = sh.trace, step = Math.max(1, Math.ceil(P.length / 50)), tr = [], tt = [];
+    for (let i = 0; i < P.length; i += step) { tr.push([r3((P[i].x - P[0].x) / band), r3((P[0].y - P[i].y) / band)]); tt.push(Math.round((P[i].t || 0) - (P[0].t || 0))); }
+    const L = P[P.length - 1]; if ((P.length - 1) % step) { tr.push([r3((L.x - P[0].x) / band), r3((P[0].y - L.y) / band)]); tt.push(Math.round((L.t || 0) - (P[0].t || 0))); }
+    Object.assign(data, { tr, tt, gx: r3(sh.gx), gy: r3(sh.gy), curve: r3(sh.curve), pw: r3(sh.pw), T: Math.round(sh.T), rem: r3(D.sc.rem || 0), q: packQ(sh.pred),
+      peak: { x: r3(sh.peak.x), y: r3(sh.peak.y), cov: r3(sh.peak.cov) }, hit: hit ? 1 : 0, bk: D.book ? 1 : 0, ...motionPack(D) });
+  }
+  ON.outbox.push({ code: ON.code, n: ON.n, by_host: ON.side === 'host', data }); ON.lastPoll = 0;
+}
+function onAfterResult() {
+  ON.n++; $('#banner').hidden = true;
+  if (ON.n % 2 === 0 && (G.you >= WIN_AT || G.gk >= WIN_AT) && G.you !== G.gk) return onEnd(G.you > G.gk ? 'won' : 'lost');
+  onNextTurn();
+}
+// their shot arrives: draw their swipe, kick the ball, and play your Goalie's dive exactly as it happened on their phone
+function onReplayStart(d) {
+  ON.inbox.delete(ON.n); G.state = 'replay'; hint.textContent = ''; G.mine = false;
+  if (d.out === 'scuff' || d.out === 'time' || !d.tr) { G.rep = null; return onReplayResolve(d); }
+  G.pos = d.pos; G.posDraw = d.pos;
+  const now = performance.now(), band = Math.max(26, Math.min(H * 0.045, (geo.ballY0 - geo.hb) / 10.5)), sx = ballX(d.pos), sy = geo.ballY;
+  const trace = d.tr.map(([x, y], i) => ({ x: sx + x * band, y: sy - y * band, t: d.tt[i] || 0 }));
+  const t0 = now + 450, rel = t0 + Math.max(150, d.tt[d.tt.length - 1] || 300);
+  G.rep = { d, trace, t0, rel, mo: d.mo ? unb64i16(d.mo) : null }; G.shot = null; G.dive = null;
+}
+function repPose(now) {
+  const R = G.rep, mo = R.mo, nf = R.d.mf || 0;
+  if (!mo || !nf) return idlePose(readyPose(GW_M / 2), now);
+  const tm = Math.max(0, (R.d.rem || 0) + (now - R.rel) / 1000), f = Math.min(nf - 1, tm * 30), i = Math.floor(f), k = f - i, j = Math.min(nf - 1, i + 1);
+  const X = new Float64Array(16), Y = new Float64Array(16);
+  for (let p = 0; p < 16; p++) { const a = i * 32 + p * 2, b = j * 32 + p * 2; X[p] = (mo[a] + (mo[b] - mo[a]) * k) / 1000; Y[p] = (mo[a + 1] + (mo[b + 1] - mo[a + 1]) * k) / 1000; }
+  return poseOf({ X, Y });
+}
+function onReplayFly() {
+  const d = G.rep.d;
+  G.shot = { sx: ballX(d.pos), sy: geo.ballY, gx: d.gx, gy: d.gy, pred: unpackQ(d.q), peak: d.peak, k: 10, T: d.T, curve: d.curve, pw: d.pw, outcome: d.out, rec: d.rec,
+    trace: G.rep.trace, lastDot: null, crPx: [], crSp: [], commitPx: null, t0: G.rep.rel, resolved: false };
+  SFX.kick(); buzz(8);
+}
+function onReplayResolve(dArg) {
+  const d = dArg || G.rep.d, nm = ON.oppName, now = performance.now(), pick = a => a[Math.floor(Math.random() * a.length)];
+  if (G.shot) G.shot.resolved = true;
+  let cls = 'good', big, line;
+  if (d.out === 'goal') { G.gk++; cls = 'bad'; big = 'Goal'; line = d.hit ? 'Your Goalie guessed right. Too slow.' : pick([`${nm} beat your Goalie.`, `${nm} fooled it.`]); G.ripple = { x: d.gx, y: d.gy, t0: now }; SFX.miss(); buzz(40); }
+  else {
+    G.you++;
+    if (d.out === 'saved') { big = 'Saved!'; line = d.bk ? 'Your trained save worked.' : d.hit ? 'Your Goalie read it.' : 'Your Goalie got there.'; G.flash = { x: d.gx, y: d.gy, t0: now }; SFX.save(); buzz(80); }
+    else if (d.out === 'wide' || d.out === 'over') { big = d.out === 'wide' ? 'Wide' : 'Over'; line = `${nm} missed.`; SFX.goal(); }
+    else { big = d.out === 'time' ? "Time's up" : 'Scuffed'; line = d.out === 'time' ? `${nm} ran out of time.` : `${nm} stopped mid-swipe.`; SFX.goal(); }
+  }
+  showBanner(cls, big, '', line, 2000);
+  // your Goalie learns from their shot: their scouting file, and a lesson for your body
+  if (d.rec) {
+    const o = OPPS.get(ON.oppPid);
+    if (o && d.peak && (d.out === 'goal' || d.out === 'saved')) o.tau = clamp(o.tau + 0.04 * (d.peak.cov - (d.hit ? 1 : 0)), 0.6, 2.5);
+    try { oppRecord(ON.oppPid, { ...d.rec }, 'on-' + ON.code); } catch (e) {}
+  }
+  G.state = 'result'; G.resultUntil = now + 2000; updateHUD();
+}
+async function onEnd(kind) {
+  if (ON.over) return; ON.over = true;
+  const won = kind === 'won' || kind === 'left', o = OPPS.get(ON.oppPid), name = ON.oppName, code = ON.code, side = ON.side, sb = ON.sb;
+  if (o) { if (won) o.wins++; else o.losses++; o.dirty = true; }
+  MENU.res = { won, you: G.you, gk: G.gk, coin: false, br: MY, iq0: G.iq0 != null ? G.iq0 : goalieIQ(MY), opp: name };
+  MENU.count = { t0: performance.now() + 450 };
+  if ((kind === 'won' || kind === 'lost') && sb) sb.from('matches').update({ state: 'done', winner: won ? side : (side === 'host' ? 'guest' : 'host'), updated_at: new Date().toISOString() }).eq('code', code).then(() => {}, () => {});
+  onReset(); persist(); setMode('mine'); showMenu();
+  if (kind === 'left') fillMenu(`${name} left the match. You win.`); else if (kind === 'quit') fillMenu('You left the match.');
+}
+function onLeaveTap() {
+  const now = performance.now();
+  if (now - ON.leaveAt > 3000) { ON.leaveAt = now; nudge('Tap home again to leave. You lose the match.'); return; }
+  if (ON.sb && ON.code) ON.sb.from('matches').update({ state: 'done', winner: ON.side === 'host' ? 'guest' : 'host' }).eq('code', ON.code).then(() => {}, () => {});
+  onEnd('quit');
+}
+// every frame: timers; every 1.5 s: talk to the server
+function onTick(now) {
+  if (G.state === 'flip' && now >= ON.flipUntil) { $('#banner').hidden = true; onNextTurn(); }
+  if (G.rep && !G.shot && G.state === 'replay' && now >= G.rep.rel) onReplayFly();
+  if (G.state === 'theirs' && now - ON.waitSince > 60000) hint.textContent = `${ON.oppName} might have left. Tap home to leave.`;
+  if ((!ON.phase && !ON.outbox.length) || ON.busy || now - ON.lastPoll < 1500) return;
+  ON.lastPoll = now; ON.busy = true; ON.polls++;
+  onPoll().catch(() => {}).finally(() => { ON.busy = false; });
+}
+async function onPoll() {
+  const sb = ON.sb; if (!sb) return;
+  while (ON.outbox.length) { const o = ON.outbox[0], { error } = await sb.from('shots').insert(o); if (error && !/duplicate|unique/i.test(error.message)) break; ON.outbox.shift(); }
+  if (ON.phase === 'hosting') {
+    const { data: m } = await sb.from('matches').select('state,guest,guest_pid,guest_name,guest_goalie').eq('code', ON.code).maybeSingle();
+    if (m && m.guest && m.guest_goalie && ON.phase === 'hosting') {
+      const first = Math.random() < 0.5 ? 'host' : 'guest', snap = goalieSnapshot(m.guest_pid, m.guest_name || 'Friend');
+      const { error } = await sb.from('matches').update({ host_goalie: snap, first, state: 'playing', updated_at: new Date().toISOString() }).eq('code', ON.code);
+      if (!error) onStart({ oppPid: m.guest_pid, oppName: m.guest_name || 'Friend', oppGoalie: m.guest_goalie, first });
+    }
+  } else if (ON.phase === 'joining') {
+    const { data: m } = await sb.from('matches').select('state,first,host_goalie').eq('code', ON.code).maybeSingle();
+    if (m && m.state === 'playing' && m.host_goalie) onStart({ oppPid: ON.oppPid, oppName: ON.oppName, oppGoalie: m.host_goalie, first: m.first });
+    else if (m && m.state === 'done') { onReset(); onMsg('Your friend cancelled the match.', 'bad'); }
+  } else if (ON.phase === 'playing') {
+    const { data: rows } = await sb.from('shots').select('n,by_host,data').eq('code', ON.code).gte('n', ON.n).order('n');
+    for (const r of rows || []) if (r.by_host !== (ON.side === 'host')) ON.inbox.set(r.n, r.data);
+    if (G.state === 'theirs' && ON.inbox.has(ON.n)) onReplayStart(ON.inbox.get(ON.n));
+    if (ON.polls % 4 === 0) {
+      const { data: m } = await sb.from('matches').select('state,winner').eq('code', ON.code).maybeSingle();
+      // they left (if they had simply won, their last shot would still be waiting to play here)
+      if (m && m.state === 'done' && m.winner === ON.side && !ON.over && !ON.inbox.size && (G.state === 'theirs' || G.state === 'ready')) onEnd('left');
+    }
+  }
+}
 // ---------- swipe color ----------
 const TRAILS = [['Amber', '#ffad3b'], ['Chalk', '#eef2e7'], ['Ice', '#6fd3ff'], ['Flame', '#ff5a3c'], ['Lime', '#9be564'], ['Rose', '#ff6fb5'], ['Violet', '#a98bff']];
 function fillTrail() {
@@ -3301,7 +3585,7 @@ function drawHeat(q, land, peak, alpha) {
 }
 function drawBody(pose, now, blind) {
   // kits are looks only. The ninja is all black with a red blindfold that never comes off
-  const ninja = G.mode === 'mine' && S.kit === 'ninja', NK = { j: '#16191c', sh: '#0c0e10', so: '#1d2226', gl: '#2a3035', hd: '#101315', bf: '#e3262e' };
+  const ninja = curKit() === 'ninja', NK = { j: '#16191c', sh: '#0c0e10', so: '#1d2226', gl: '#2a3035', hd: '#101315', bf: '#e3262e' };
   const jc = ninja ? NK.j : G.mode === 'super' || G.mode === 'watch' ? C.cool : C.sodium; // the Super Goalie wears blue
   if (ninja) blind = true;
   const s = geo.gw / GW_M, m = p => g2s(p[0] / GW_M, p[1] / GH_M), P = pose.pts;
@@ -3423,9 +3707,9 @@ function idlePose(pose, now) {
   return { ...pose, pts: Q };
 }
 // the swipe: a glowing ribbon, widest and brightest where you started, thinning and fading toward your finger
-function drawTrail(pts, alpha) {
+function drawTrail(pts, alpha, colOverride) {
   const P = []; for (const p of pts) { const l = P[P.length - 1]; if (!l || Math.hypot(p.x - l.x, p.y - l.y) >= 2) P.push(p); }
-  const col = S.trail || C.sodium, w0 = clamp(W * 0.05, 14, 24), w1 = 2;
+  const col = colOverride || S.trail || C.sodium, w0 = clamp(W * 0.05, 14, 24), w1 = 2;
   if (!P.length || alpha <= 0) return;
   g.save(); g.globalAlpha *= Math.min(1, alpha);
   if (P.length < 3) { g.fillStyle = rgba(col, 0.9); g.shadowColor = rgba(col, 0.7); g.shadowBlur = 18; g.beginPath(); g.arc(P[0].x, P[0].y, w0 / 2, 0, 7); g.fill(); g.restore(); return; }
@@ -3454,7 +3738,7 @@ function drawReplay(sh, alpha) {
   g.save(); g.globalAlpha = alpha;
   // your swipe fades out as the ball flies, leaving a faint trace on the result
   const age = (performance.now() - sh.t0) / 1000;
-  drawTrail(sh.trace, G.state === 'result' ? 0.5 / alpha : clamp(1.15 - age * 1.2, 0.5, 1) / alpha);
+  drawTrail(sh.trace, G.state === 'result' ? 0.5 / alpha : clamp(1.15 - age * 1.2, 0.5, 1) / alpha, G.mode === 'online' && !G.mine ? '#6fd3ff' : null);
   // (the read point and blindfold markers are gone: players see what happened, not how it works)
   g.restore();
 }
@@ -3479,7 +3763,7 @@ function frame(now) {
   const menuUp = G.state === 'title' && !$('#menu').hidden && S.sel === 'mine' && $('#store').hidden && $('#trainer').hidden && $('#brain').hidden && $('#title').hidden;
   if (!menuUp) DEMO.cur = null; else if (!DEMO.cur && now > DEMO.next) demoStart(now);
   const demo = DEMO.cur ? demoFrame(now) : null;
-  const pose = G.dive ? poseOf(G.dive.R.s) : demo && DEMO.cur ? (demo.idle ? idlePose(poseOf(DEMO.cur.R.s), now) : poseOf(DEMO.cur.R.s)) : idlePose(readyPose(Math.round(G.kx * GW_M * 50) / 50), now), blind = demo ? demo.blind : G.state === 'ready' && !(sw && sw.commit);
+  const pose = G.dive ? poseOf(G.dive.R.s) : G.rep ? repPose(now) : demo && DEMO.cur ? (demo.idle ? idlePose(poseOf(DEMO.cur.R.s), now) : poseOf(DEMO.cur.R.s)) : idlePose(readyPose(Math.round(G.kx * GW_M * 50) / 50), now), blind = demo ? demo.blind : G.rep ? now < G.rep.rel : G.state === 'theirs' || (G.state === 'ready' && !(sw && sw.commit));
   let bx = ballX(G.posDraw), by = G.state === 'title' ? geo.gyb + (geo.ballY - geo.gyb) * 0.5 : geo.ballY, br = geo.r0, rot = 0, ba = 1, shadowAt = null;
   if (sh) {
     const e = now - sh.t0, q = Math.min(1, e / sh.T), S0 = { x: sh.sx, y: sh.sy };
@@ -3497,6 +3781,8 @@ function frame(now) {
     }
   } else shadowAt = [bx, by + br * 0.8];
   if (demo) { ({ x: bx, y: by, r: br, rot, a: ba } = demo.ball); shadowAt = demo.shadow; if (demo.trail.length) drawTrail(demo.trail, demo.trailA); }
+  // your opponent's swipe being drawn, before their ball flies
+  if (G.rep && !G.shot) { const el = now - G.rep.t0, pts = G.rep.trace.filter(p => p.t <= el); if (pts.length) drawTrail(pts, 1, '#6fd3ff'); }
   if (sh) drawReplay(sh, G.state === 'result' ? 0.9 : 0.5);
   const ballBehind = sh && sh.outcome === 'goal' && now - sh.t0 > sh.T;
   if (ballBehind) { drawBall(bx, by, br, rot, ba); drawBody(pose, now, blind); drawGoal(now, true); }
@@ -3514,6 +3800,7 @@ function frame(now) {
     }
   }
   drawFlash(now);
+  if (G.mode === 'online' && ON.opp) { g.font = monoF(10); g.textAlign = 'center'; g.textBaseline = 'bottom'; g.fillStyle = rgba(G.mine ? C.chalk : C.good, 0.75); g.fillText(G.mine ? (ON.opp.name + "'s Goalie").toUpperCase() : 'YOUR GOALIE', W / 2, geo.gyt - 10); }
   if (demo && demo.cap) { g.font = monoF(10); g.textAlign = 'center'; g.textBaseline = 'top'; g.fillStyle = rgba(C.chalk, 0.6); g.fillText(demo.cap.toUpperCase(), W / 2, geo.gyb + 10); }
   if (sw) drawLiveBands(now);
   if (shook) g.restore();
@@ -3524,7 +3811,9 @@ function frame(now) {
   if (G.state === 'flying' && sh && !sh.resolved && now - sh.t0 >= sh.T) resolveShot();
   // shot clock: a resting thumb doesn't stop it; only a swipe already in motion can beat the buzzer
   if (G.state === 'ready' && !G.paused && G.chunk && shotLeft() <= 0 && !(sw && sw.moved)) timeout();
-  if (G.state === 'result' && now >= G.resultUntil) { if (G.you >= WIN_AT || G.gk >= WIN_AT) (G.mode === 'watch' ? newRun() : gameOver()); else nextShot(); }
+  if (G.state === 'result' && now >= G.resultUntil) { if (G.mode === 'online') onAfterResult(); else if (G.you >= WIN_AT || G.gk >= WIN_AT) (G.mode === 'watch' ? newRun() : gameOver()); else nextShot(); }
+  if (G.state === 'replay' && G.shot && !G.shot.resolved && now - G.shot.t0 >= G.shot.T) onReplayResolve();
+  onTick(now);
   autoTick();
   // both brains keep training in the background: a few ms per frame while you play, more while you're in a menu
   bgTick(G.state === 'ready' || G.state === 'flying' ? 3 : 9);
@@ -3559,7 +3848,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.02-2115';
+  var VERSION = '2026.11.02-2144';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess app · version ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
