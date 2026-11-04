@@ -2720,10 +2720,10 @@ function hideMenu() { app.classList.remove('menu-on'); $('#menu').hidden = true;
 const goalieIQ = br => Math.round((br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total + (br === MY ? oppShots() : 0))) / 15);
 const MENU = { res: null, count: null };
 // ---------- version and what changed (each update goes up by 0.01) ----------
-const APP_VERSION = '1.10';
+const APP_VERSION = '1.11';
 const WHATS_NEW = [
-  'No more net: behind the goal is a black void',
-  'Goals keep going the way they went in and fade into the black',
+  'No more net: the goal opens onto deep space, stars and all',
+  'Goals keep going the way they went in and fade into the dark',
   'Every ball redesigned in neon to match the Goalies',
 ];
 window.APP_VERSION = APP_VERSION;
@@ -3868,8 +3868,11 @@ function drawPitch(now) {
 function drawGoal(now, front) {
   const { gx0, gyt, gyb, gw, gh } = geo, gx1 = gx0 + gw;
   if (!front) {
-    // inside the goal: no net, just a black void
+    // inside the goal: no net. A black void of deep space, inside the goal's 3D frame
     g.fillStyle = '#000'; g.fillRect(gx0, gyt, gw, gh);
+    const inset = gw * 0.05, bt = gyt - gh * 0.12, bb = gyb - gh * 0.16;
+    g.fillStyle = 'rgba(255,255,255,.03)'; g.beginPath(); g.moveTo(gx0, gyb); g.lineTo(gx0, gyt); g.lineTo(gx0 + inset, bt); g.lineTo(gx0 + inset, bb); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(gx1, gyb); g.lineTo(gx1, gyt); g.lineTo(gx1 - inset, bt); g.lineTo(gx1 - inset, bb); g.closePath(); g.fill();
   } else {
     // the frame sits just OUTSIDE the physics box: the inside edge of each post and of the bar is the wall the Goalie hits
     const lw = Math.max(4, gw * 0.018), o = lw / 2;
@@ -4139,7 +4142,21 @@ function spaceBall(now) {
   const at = ee => ({ x: A.x + S0.ux * S0.L * ee, y: A.y + S0.uy * S0.L * ee });
   const p = at(e); return { ...p, r: S0.r0 * (1 - 0.45 * e), a: Math.pow(1 - q, 1.6), q, at: qq => at(qq), V };
 }
-function drawSpace(now) { if (G.space && now - G.space.t0 > SPACE_MS + 200) G.space = null; }
+// the stars are always there, faint; a goal wakes them up for a moment. Then the goal's 3D frame on top
+function drawSpace(now) {
+  const S0 = G.space, el = S0 ? now - S0.t0 : 1e9; if (S0 && el > SPACE_MS + 900) G.space = null;
+  const boost = el >= 0 && el < 2600 ? clamp(el / 400, 0, 1) * clamp(1 - (el - 1900) / 700, 0, 1) : 0;
+  const { gx0, gyt, gyb, gw, gh } = geo, gx1 = gx0 + gw;
+  g.save(); g.beginPath(); g.rect(gx0, gyt, gw, gh); g.clip();
+  if (boost > 0) { const V = g2s(clamp(S0.vx, 0.15, 0.85), clamp(S0.vy, 0.2, 0.8)), neb = (x, y, r, rgb, a) => { const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(${rgb},${a})`); gr.addColorStop(1, `rgba(${rgb},0)`); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); };
+    neb(V.x, V.y, gw * 0.42, '90,70,200', 0.26 * boost); neb(V.x + gw * 0.12, V.y - gh * 0.15, gw * 0.25, '60,150,220', 0.16 * boost); }
+  for (const st of SPACE_STARS) { const tw = 0.5 + 0.5 * Math.sin(now / 900 + st.ph); g.fillStyle = `rgba(235,242,255,${(0.12 + 0.18 * tw) * (1 - boost) + boost * (0.35 + 0.65 * tw)})`; g.beginPath(); g.arc(gx0 + st.x * gw, gyt + st.y * gh, st.r * Math.max(0.7, gw / 460), 0, 7); g.fill(); }
+  g.restore();
+  // the 3D frame: the back of the goal, its roof and its sides
+  const inset = gw * 0.05, bt = gyt - gh * 0.12, bb = gyb - gh * 0.16;
+  const sb = g.createLinearGradient(0, gyt, 0, gyt + gh * 0.22); sb.addColorStop(0, 'rgba(0,0,0,.55)'); sb.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = sb; g.fillRect(gx0, gyt, gw, gh * 0.22);
+  g.strokeStyle = rgba(C.chalk, 0.3); g.lineWidth = 1; g.beginPath(); g.moveTo(gx0, gyt); g.lineTo(gx0 + inset, bt); g.lineTo(gx1 - inset, bt); g.lineTo(gx1, gyt); g.moveTo(gx0 + inset, bt); g.lineTo(gx0 + inset, bb); g.lineTo(gx0, gyb); g.moveTo(gx1 - inset, bt); g.lineTo(gx1 - inset, bb); g.lineTo(gx1, gyb); g.moveTo(gx0 + inset, bb); g.lineTo(gx1 - inset, bb); g.stroke();
+}
 function drawSpaceBall(now, rot) {
   const B = spaceBall(now); if (!B || B.a <= 0.01) return;
   const { gx0, gyt, gw, gh } = geo;
@@ -4386,7 +4403,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.04-2149';
+  var VERSION = '2026.11.04-2154';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess v' + (window.APP_VERSION || '1.00') + ' · build ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
