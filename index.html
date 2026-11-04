@@ -2653,10 +2653,9 @@ function hideMenu() { app.classList.remove('menu-on'); $('#menu').hidden = true;
 const goalieIQ = br => Math.round((br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total + (br === MY ? oppShots() : 0))) / 15);
 const MENU = { res: null, count: null };
 // ---------- version and what changed (each update goes up by 0.01) ----------
-const APP_VERSION = '1.04';
+const APP_VERSION = '1.05';
 const WHATS_NEW = [
-  'A new Goalie: a neon stick figure with glowing red mitts',
-  'A new Ninja: shadow black with a red glow',
+  'A new swipe line: smoother, glowing, and it keeps up with your finger',
 ];
 window.APP_VERSION = APP_VERSION;
 function showWhatsNew() {
@@ -3841,7 +3840,7 @@ function drawLiveBands(now) {
     if (isR) { g.fillStyle = C.sodium; g.textAlign = 'left'; g.fillText('READ', cx + half + 6, y); }
     if (isMin) { g.fillStyle = crossed ? C.good : C.chalk2; g.textAlign = 'left'; g.fillText('SHOOT', cx + half + 6, y); }
   }
-  drawTrail(sw.pts, 1);
+  drawTrail(sw.pts, 1, null, true);
 }
 // a save: a burst where the glove met the ball
 function drawFlash(now) {
@@ -3906,31 +3905,48 @@ function idlePose(pose, now) {
   return { ...pose, pts: Q };
 }
 // the swipe: a glowing ribbon, widest and brightest where you started, thinning and fading toward your finger
-function drawTrail(pts, alpha, colOverride) {
-  const P = []; for (const p of pts) { const l = P[P.length - 1]; if (!l || Math.hypot(p.x - l.x, p.y - l.y) >= 2) P.push(p); }
-  const col = colOverride || S.trail || C.sodium, w0 = clamp(W * 0.05, 14, 24), w1 = 2;
-  if (!P.length || alpha <= 0) return;
+// ---------- the swipe line (looks only: the real swipe the game reads is the raw one, kept hidden) ----------
+// Tuned in the Swipe Lab: One Euro smoothing at 45%, keep fast swipes sharp 50%, drawn 8 ms ahead of the finger,
+// a smooth curve through the points, 18 px wide where it starts down to 4 px at the finger, glow 14.
+const TRAIL_LOOK = { strength: 45, keep: 50, predict: 8, w0: 18, w1: 4, glow: 14 };
+function trailSmooth(pts) {
+  const s = TRAIL_LOOK.strength / 100, minC = lerp(12, 0.4, Math.pow(s, 0.6)), beta = lerp(0, 0.03, TRAIL_LOOK.keep / 100);
+  const al = (c, dt) => 1 / (1 + 1 / (2 * Math.PI * c * dt));
+  const T = i => pts[i].t != null ? pts[i].t : i * 8;
+  const out = [{ x: pts[0].x, y: pts[0].y, t: T(0) }]; let h = out[0], ex = 0, ey = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const p = pts[i], dt = Math.max(0.001, (T(i) - T(i - 1)) / 1000), ad = al(1.2, dt);
+    ex += ((p.x - h.x) / dt - ex) * ad; ey += ((p.y - h.y) / dt - ey) * ad;
+    const a = al(minC + beta * Math.hypot(ex, ey), dt); h = { x: h.x + (p.x - h.x) * a, y: h.y + (p.y - h.y) * a, t: T(i) }; out.push(h);
+  }
+  return out;
+}
+function drawTrail(pts, alpha, colOverride, liveNow) {
+  if (!pts || !pts.length || alpha <= 0) return;
+  const col = colOverride || S.trail || C.sodium, L = TRAIL_LOOK;
   g.save(); g.globalAlpha *= Math.min(1, alpha);
-  if (P.length < 3) { g.fillStyle = rgba(col, 0.9); g.shadowColor = rgba(col, 0.7); g.shadowBlur = 18; g.beginPath(); g.arc(P[0].x, P[0].y, w0 / 2, 0, 7); g.fill(); g.restore(); return; }
-  const Sm = P.map((p, i) => i === 0 || i === P.length - 1 ? { x: p.x, y: p.y } : { x: (P[i - 1].x + 2 * p.x + P[i + 1].x) / 4, y: (P[i - 1].y + 2 * p.y + P[i + 1].y) / 4 });
-  const n = Sm.length, d = [0]; for (let i = 1; i < n; i++) d.push(d[i - 1] + Math.hypot(Sm[i].x - Sm[i - 1].x, Sm[i].y - Sm[i - 1].y));
-  // the fade runs over at least a third of the screen, so a short swipe is all bold and a long one tails off
-  const Lr = Math.max(d[n - 1], H * 0.34);
-  const ribbon = sc => {
-    const L = [], Rt = [];
-    for (let i = 0; i < n; i++) {
-      const a = Sm[Math.max(0, i - 1)], b = Sm[Math.min(n - 1, i + 1)]; let tx = b.x - a.x, ty = b.y - a.y; const l = Math.hypot(tx, ty) || 1; tx /= l; ty /= l;
-      const u = d[i] / Lr, w = (w0 + (w1 - w0) * Math.pow(u, 0.75)) / 2 * sc;
-      L.push([Sm[i].x - ty * w, Sm[i].y + tx * w]); Rt.push([Sm[i].x + ty * w, Sm[i].y - tx * w]);
-    }
-    g.beginPath(); g.moveTo(L[0][0], L[0][1]); for (let i = 1; i < n; i++) g.lineTo(L[i][0], L[i][1]);
-    for (let i = n - 1; i >= 0; i--) g.lineTo(Rt[i][0], Rt[i][1]);
-    const a0 = Math.atan2(Sm[1].y - Sm[0].y, Sm[1].x - Sm[0].x); g.arc(Sm[0].x, Sm[0].y, w0 / 2 * sc, a0 + Math.PI / 2, a0 + Math.PI * 1.5); g.closePath();
-  };
-  const e = Sm[n - 1], s0 = Sm[0], dl = Math.hypot(e.x - s0.x, e.y - s0.y) || 1, ex = s0.x + (e.x - s0.x) / dl * Lr, ey = s0.y + (e.y - s0.y) / dl * Lr;
-  const grad = (c, a) => { const gr = g.createLinearGradient(s0.x, s0.y, ex, ey); gr.addColorStop(0, rgba(c, a)); gr.addColorStop(0.55, rgba(c, a * 0.45)); gr.addColorStop(1, rgba(c, a * 0.04)); return gr; };
-  g.shadowColor = rgba(col, 0.75); g.shadowBlur = 20; g.fillStyle = grad(col, 0.95); ribbon(1); g.fill();
-  g.shadowBlur = 0; g.fillStyle = grad('#ffffff', 0.55); ribbon(0.32); g.fill();
+  if (pts.length < 2) { g.fillStyle = col; g.shadowColor = col; g.shadowBlur = L.glow; g.beginPath(); g.arc(pts[0].x, pts[0].y, L.w0 / 2, 0, 7); g.fill(); g.restore(); return; }
+  let sm = trailSmooth(pts);
+  // while your finger is down, draw a little ahead of it along its speed, so the line never feels behind
+  if (liveNow && pts.length > 2 && pts[pts.length - 1].t != null) {
+    const a = pts[pts.length - 1]; let j = pts.length - 2; while (j > 0 && a.t - pts[j].t < 24) j--;
+    const b = pts[j], dt = Math.max(1, a.t - b.t), e = sm[sm.length - 1];
+    sm = [...sm, { x: e.x + (a.x - b.x) / dt * L.predict, y: e.y + (a.y - b.y) / dt * L.predict, t: e.t + L.predict }];
+  }
+  // a smooth curve through the points
+  const P = [];
+  for (let i = 0; i < sm.length - 1; i++) {
+    const p0 = sm[Math.max(0, i - 1)], p1 = sm[i], p2 = sm[i + 1], p3 = sm[Math.min(sm.length - 1, i + 2)];
+    const steps = Math.max(1, Math.min(8, Math.ceil(Math.hypot(p2.x - p1.x, p2.y - p1.y) / 4)));
+    for (let k = 0; k < steps; k++) { const u = k / steps, u2 = u * u, u3 = u2 * u;
+      P.push({ x: 0.5 * (2 * p1.x + (-p0.x + p2.x) * u + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * u2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * u3),
+               y: 0.5 * (2 * p1.y + (-p0.y + p2.y) * u + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * u2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * u3) }); }
+  }
+  P.push(sm[sm.length - 1]);
+  // a glowing ribbon: wide where the swipe started, thin at the finger
+  g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = col; g.shadowColor = col; g.shadowBlur = L.glow;
+  const n = P.length;
+  for (let i = 1; i < n; i++) { g.lineWidth = lerp(L.w0, L.w1, i / (n - 1)); g.beginPath(); g.moveTo(P[i - 1].x, P[i - 1].y); g.lineTo(P[i].x, P[i].y); g.stroke(); }
   g.restore();
 }
 function drawReplay(sh, alpha) {
@@ -4047,7 +4063,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.03-0036';
+  var VERSION = '2026.11.04-0022';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess v' + (window.APP_VERSION || '1.00') + ' · build ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
