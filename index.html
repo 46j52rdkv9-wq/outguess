@@ -448,6 +448,7 @@ h1,h2,h3{margin:0;text-wrap:balance}
         <div class="setrow"><p>Backup<small>Your Goalie, everything it learned, your rivals, trained shots, coins and kits, in one file. Restore it on any phone.</small></p><div class="bkbtns"><button class="pill amber" id="bkSave">Save</button><button class="pill" id="bkLoad">Restore</button><input type="file" id="bkFile" accept=".json,application/json" hidden></div></div>
         <p class="bkmsg" id="bkMsg" hidden></p>
         <div class="setrow"><p>Your data<small>Every match, both Goalies' brains and your stats, as one readable .txt file.</small></p><button class="pill" id="exportAll">Save .txt</button></div>
+        <div class="setrow"><p>Problem report<small id="probTxt">If the game crashes or freezes, copy this and send it to whoever makes the game.</small></p><button class="pill" id="probCopy">Copy</button></div>
         <div id="wipeBox"><button class="textbtn" id="wipe">Wipe the Goalie's brain</button></div>
       </div>
       <div class="superbox" hidden>
@@ -1223,6 +1224,20 @@ const B2 = (() => {
 
 
 <script>
+// ---------- problem log: kept on this phone so a player can send it if the game misbehaves ----------
+const PLOG = (() => {
+  const K = 'outguess6.problems', A = 'outguess6.alive', t0 = Date.now();
+  const read = () => { try { return JSON.parse(localStorage.getItem(K)) || []; } catch (e) { return []; } };
+  const add = (kind, msg, extra) => { try { const L = read(); L.push({ at: new Date().toISOString(), v: window.OG_VER || '?', kind, msg: String(msg).slice(0, 300), ...(extra || {}) }); while (L.length > 25) L.shift(); localStorage.setItem(K, JSON.stringify(L)); } catch (e) {} };
+  // the last session never said goodbye while it was on screen: it was closed by the phone (a crash or out of memory)
+  try { const a = JSON.parse(localStorage.getItem(A)); if (a && !a.clean) add('closed', `The app stopped while on screen, ${Math.round((a.t - a.start) / 60000)} min into the session`, { state: a.state, mode: a.mode, mem: a.mem, v: a.v || '?' }); } catch (e) {}
+  const beat = (state, mode) => { try { localStorage.setItem(A, JSON.stringify({ start: t0, t: Date.now(), v: window.OG_VER, state, mode, clean: document.visibilityState === 'hidden', mem: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null })); } catch (e) {} };
+  const bye = () => { try { const a = JSON.parse(localStorage.getItem(A)) || {}; a.clean = true; localStorage.setItem(A, JSON.stringify(a)); } catch (e) {} };
+  addEventListener('pagehide', bye); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') bye(); });
+  addEventListener('error', e => add('error', (e.message || 'error') + (e.filename ? ` @${(e.lineno || 0)}:${e.colno || 0}` : ''), { stack: e.error && e.error.stack ? String(e.error.stack).split('\n').slice(0, 3).join(' | ') : undefined }));
+  addEventListener('unhandledrejection', e => add('promise', e.reason && (e.reason.message || e.reason) || 'rejected'));
+  return { add, read, beat, clear: () => { try { localStorage.removeItem(K); } catch (e) {} } };
+})();
 (() => {
 'use strict';
 // ---------- helpers ----------
@@ -1775,7 +1790,8 @@ function trainTick(budget) {
     const teachGlue = `\nonmessage=e=>{const d=e.data;if(d.type==='ping')return postMessage({type:'pong'});if(d.type==='teach'){const t=B2.teach(Float64Array.from(d.th),d.sc,{pop:d.opts.pop,iters:d.opts.iters,seeds:(d.opts.seeds||[]).map(p=>Float64Array.from(p))});const r=t?{v:t.v,gap:t.gap,sv:t.sv,sgap:t.sgap,plan:Float32Array.from(t.plan),desc:t.desc,data:t.v>t.sv+0.02?B2.packLessons(t):null}:null;postMessage({type:'taught',jid:d.jid,i:d.i,r});}};`;
     const copyGlue = `\nconst BUFS={};let M={};onmessage=e=>{const d=e.data;if(d.type==='ping')return postMessage({type:'pong'});if(d.type==='init'){BUFS[d.id]=B2.unpack(d.data);}if(d.type==='add'){(BUFS[d.id]||(BUFS[d.id]=[])).push(...B2.unpack(d.data));const b=BUFS[d.id];if(b.length>${LESSON.maxRows})b.splice(0,b.length-${LESSON.maxRows});}if(d.type==='imitate'){const m=M[d.id]||(M[d.id]={});m.th=Float64Array.from(d.th);const b=BUFS[d.id]||[];const loss=b.length?B2.imitate(m,b,d.steps):null;postMessage({type:'copied',jid:d.jid,th:Array.from(m.th),loss,after:d.scen.map(sc=>B2.score(m.th,sc))});}};`;
     const mk = glue => new Worker(URL.createObjectURL(new Blob([src + glue], { type: 'text/javascript' })));
-    const nT = clamp((navigator.hardwareConcurrency || 2) - 2, 1, 3);
+    const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const nT = IOS ? 1 : clamp((navigator.hardwareConcurrency || 2) - 2, 1, 3);
     let pongs = 0; const need = nT + 1, onPong = () => { if (++pongs === need) TQ.ok = true; };
     const fail = () => { TQ.ok = false; TQ.teachers.forEach(w => w.terminate()); if (TQ.copier) TQ.copier.terminate(); TQ.teachers = []; TQ.copier = null; if (TQ.cur) { TQ.cur.next = 0; TQ.cur.back = 0; TQ.cur.done = 0; TQ.cur.copying = false; } };
     for (let i = 0; i < nT; i++) {
@@ -2619,6 +2635,22 @@ $('#closeBrain').addEventListener('click', () => { $('#brain').hidden = true; G.
 $('#playSuper').addEventListener('click', () => { audio(); setMode('super'); $('#title').hidden = true; newRun(); });
 $('#watchSuper').addEventListener('click', () => { audio(); setMode('watch'); $('#title').hidden = true; newRun(); });
 $('#txtClose').addEventListener('click', () => { $('#txtBox').hidden = true; });
+function problemReport() {
+  const L = PLOG.read(), n = k => { try { return (localStorage.getItem(k) || '').length; } catch (e) { return 0; } };
+  let ls = 0; try { for (let i = 0; i < localStorage.length; i++) ls += n(localStorage.key(i)); } catch (e) {}
+  const lines = [`OUTGUESS PROBLEM REPORT · v${APP_VERSION} · ${new Date().toISOString()}`,
+    `device ${navigator.userAgent}`, `screen ${innerWidth}x${innerHeight} dpr ${devicePixelRatio} · cores ${navigator.hardwareConcurrency || '?'} · memory ${navigator.deviceMemory || '?'} GB`,
+    `installed ${matchMedia('(display-mode: standalone)').matches ? 'yes' : 'no'} · threads ${TQ.ok ? TQ.teachers.length + '+1' : 'off'} · saved data ${Math.round(ls / 1024)} KB · lessons ${MEM.my.rows.length} · shots ${B.total}`,
+    L.length ? `${L.length} problem${L.length > 1 ? 's' : ''}:` : 'No problems logged.'];
+  for (const e of L) lines.push(`${e.at} v${e.v} ${e.kind}: ${e.msg}${e.state ? ' [' + e.state + (e.mode ? '/' + e.mode : '') + ']' : ''}${e.stack ? ' :: ' + e.stack : ''}`);
+  return lines.join('\n');
+}
+function fillProb() { const L = PLOG.read(); $('#probTxt').textContent = L.length ? `${L.length} problem${L.length > 1 ? 's' : ''} logged on this phone. Copy and send it to whoever makes the game.` : 'If the game crashes or freezes, copy this and send it to whoever makes the game.'; }
+$('#probCopy').addEventListener('click', () => {
+  const txt = problemReport(), btn = $('#probCopy'), ta = $('#txtOut');
+  const show = () => { ta.hidden = false; ta.value = txt; $('#txtBox').hidden = false; ta.focus(); ta.select(); btn.textContent = 'Select and copy'; };
+  try { navigator.clipboard.writeText(txt).then(() => { btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = 'Copy'; }, 1800); }, show); } catch (e) { show(); }
+});
 $('#again').addEventListener('click', () => { $('#over').hidden = true; newRun(); });
 $('#oMenu').addEventListener('click', () => { $('#over').hidden = true; showTitle(); });
 const setSwitch = (el, v) => el.setAttribute('aria-checked', v ? 'true' : 'false');
@@ -2640,6 +2672,7 @@ function fillTitle() {
   if (ok.length && !$('#oldBox').dataset.busy) $('#oldLine').innerHTML = `Data from the previous Goalie is still saved here (<b>${fmt(Math.round(ok.reduce((t, k) => t + (localStorage.getItem(k) || '').length, 0) / 1024))} KB</b>). It isn't loaded anymore. Save it as a .txt, then delete it.`;
   const a = readAcc(); $('#tRead').textContent = a == null ? '–' : pc(a);
   setSwitch($('#swMem'), S.mem); setSwitch($('#swSound'), S.sound); setSwitch($('#swBait'), S.bait);
+  try { fillProb(); } catch (e) {}
 }
 // ---------- main menu ----------
 // The selected Goalie stands in the net (yours in amber, the Super Goalie in blue). Play starts a match against it.
@@ -2653,10 +2686,11 @@ function hideMenu() { app.classList.remove('menu-on'); $('#menu').hidden = true;
 const goalieIQ = br => Math.round((br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total + (br === MY ? oppShots() : 0))) / 15);
 const MENU = { res: null, count: null };
 // ---------- version and what changed (each update goes up by 0.01) ----------
-const APP_VERSION = '1.06';
+const APP_VERSION = '1.07';
+window.OG_VER = APP_VERSION;
 const WHATS_NEW = [
-  'A new swipe line: smoother, glowing, and it keeps up with your finger',
-  'The ball sits a little lower, closer to your thumb',
+  'Smoother on iPhone: less work for the phone while you play',
+  'If the game crashes, Settings has a problem report you can send',
 ];
 window.APP_VERSION = APP_VERSION;
 function showWhatsNew() {
@@ -3944,10 +3978,18 @@ function drawTrail(pts, alpha, colOverride, liveNow) {
                y: 0.5 * (2 * p1.y + (-p0.y + p2.y) * u + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * u2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * u3) }); }
   }
   P.push(sm[sm.length - 1]);
-  // a glowing ribbon: wide where the swipe started, thin at the finger
-  g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = col; g.shadowColor = col; g.shadowBlur = L.glow;
-  const n = P.length;
-  for (let i = 1; i < n; i++) { g.lineWidth = lerp(L.w0, L.w1, i / (n - 1)); g.beginPath(); g.moveTo(P[i - 1].x, P[i - 1].y); g.lineTo(P[i].x, P[i].y); g.stroke(); }
+  // a glowing ribbon: wide where the swipe started, thin at the finger. One shape, one glow
+  const n = P.length, d = [0]; for (let i = 1; i < n; i++) d.push(d[i - 1] + Math.hypot(P[i].x - P[i - 1].x, P[i].y - P[i - 1].y));
+  const Lt = [], Rt = [], tot = d[n - 1] || 1;
+  for (let i = 0; i < n; i++) {
+    const a = P[Math.max(0, i - 1)], b = P[Math.min(n - 1, i + 1)]; let tx = b.x - a.x, ty = b.y - a.y; const l = Math.hypot(tx, ty) || 1; tx /= l; ty /= l;
+    const w = lerp(L.w0, L.w1, d[i] / tot) / 2; Lt.push([P[i].x - ty * w, P[i].y + tx * w]); Rt.push([P[i].x + ty * w, P[i].y - tx * w]);
+  }
+  g.beginPath(); g.moveTo(Lt[0][0], Lt[0][1]); for (let i = 1; i < n; i++) g.lineTo(Lt[i][0], Lt[i][1]);
+  { const e = P[n - 1], a1 = Math.atan2(e.y - P[n - 2].y, e.x - P[n - 2].x); g.arc(e.x, e.y, L.w1 / 2, a1 - Math.PI / 2, a1 + Math.PI / 2); }
+  for (let i = n - 1; i >= 0; i--) g.lineTo(Rt[i][0], Rt[i][1]);
+  { const a0 = Math.atan2(P[1].y - P[0].y, P[1].x - P[0].x); g.arc(P[0].x, P[0].y, L.w0 / 2, a0 + Math.PI / 2, a0 + Math.PI * 1.5); }
+  g.closePath(); g.fillStyle = col; g.shadowColor = col; g.shadowBlur = L.glow; g.fill();
   g.restore();
 }
 function drawReplay(sh, alpha) {
@@ -3960,6 +4002,16 @@ function drawReplay(sh, alpha) {
 }
 
 function frame(now) {
+  try { frameBody(now); }
+  catch (e) {
+    if (!G.errAt || now - G.errAt > 5000) { G.errAt = now; PLOG.add('frame', e && e.message || e, { stack: e && e.stack ? String(e.stack).split('\n').slice(0, 3).join(' | ') : undefined, state: G.state }); }
+    for (let i = 0; i < 24; i++) g.restore();
+    g.setTransform(DPR, 0, 0, DPR, 0, 0); g.globalAlpha = 1; g.shadowBlur = 0; g.globalCompositeOperation = 'source-over';
+  }
+  if (!G.beatAt || now - G.beatAt > 5000) { G.beatAt = now; PLOG.beat(G.state, G.mode); }
+  requestAnimationFrame(frame);
+}
+function frameBody(now) {
   if (!W) layout();
   // hidden game clock: runs only while a game is in play, pauses for menus, the Brain panel and a hidden app
   const dtF = G.lastFrame ? Math.min(100, now - G.lastFrame) : 0; G.lastFrame = now;
@@ -4043,7 +4095,6 @@ function frame(now) {
   if (!G.saveAt) G.saveAt = now; else if (now - G.saveAt > 60000) { G.saveAt = now; persist(); }
   if (!G.memAt) G.memAt = now; else if (now - G.memAt > 15000) { G.memAt = now; memSave(); }
   if (!$('#brain').hidden && now - G.b2DrawAt > 1000) { G.b2DrawAt = now; drawB2(); drawReach(); }
-  requestAnimationFrame(frame);
 }
 
 function start() {
@@ -4064,7 +4115,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.04-0025';
+  var VERSION = '2026.11.04-0046';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess v' + (window.APP_VERSION || '1.00') + ' · build ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
