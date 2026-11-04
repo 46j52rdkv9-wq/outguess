@@ -2720,11 +2720,11 @@ function hideMenu() { app.classList.remove('menu-on'); $('#menu').hidden = true;
 const goalieIQ = br => Math.round((br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total + (br === MY ? oppShots() : 0))) / 15);
 const MENU = { res: null, count: null };
 // ---------- version and what changed (each update goes up by 0.01) ----------
-const APP_VERSION = '1.12';
+const APP_VERSION = '1.13';
 const WHATS_NEW = [
+  'New Goalie: Juju. Find him in the Store',
   'Your swipe line now dissolves into space as it reaches the goal',
   'No more net: the goal opens onto deep space, stars and all',
-  'Every ball redesigned in neon to match the Goalies',
 ];
 window.APP_VERSION = APP_VERSION;
 function showWhatsNew() {
@@ -2927,7 +2927,8 @@ const KITS = [
   { id: 'astro', name: 'Astronaut', price: 15, desc: 'Puffy suit and backpack. Its visor is black while blind and turns gold when it reads you.' },
   { id: 'skel', name: 'Skeleton', price: 20, desc: 'Bones and a skull with a green glow. The sockets light up when it reads you.' },
   { id: 'inferno', name: 'Inferno', price: 30, desc: 'A body of fire with fireball mitts. It smoulders while blind and blazes when it reads you.' },
-  { id: 'phantom', name: 'Phantom', price: 40, desc: 'A hooded violet ghost that leaves afterimages. The hood lights up when it reads you.' }
+  { id: 'phantom', name: 'Phantom', price: 40, desc: 'A hooded violet ghost that leaves afterimages. The hood lights up when it reads you.' },
+  { id: 'juju', name: 'Juju', price: 0, desc: 'Afro, shades, diamond studs and a racing jacket. His shades slide down when he reads you.' }
 ];
 const BALLS = [
   { id: 'soccer', name: 'Classic', price: 0, desc: 'White neon. The ball it all started with.' },
@@ -4037,7 +4038,81 @@ function drawPhantom(c, Q, s, now, blind, hist) {
     const g = c.createRadialGradient(gc.x, gc.y, 0, gc.x, gc.y, 0.13 * s); g.addColorStop(0, 'rgba(240,230,255,.95)'); g.addColorStop(0.6, 'rgba(162,107,255,.6)'); g.addColorStop(1, 'rgba(162,107,255,0)'); c.fillStyle = g; c.beginPath(); c.arc(gc.x, gc.y, 0.13 * s, 0, TAU); c.fill();
     for (let i = 0; i < 3; i++) { const a = now / 300 + i * 2.1 + side; c.fillStyle = 'rgba(230,217,255,.8)'; c.beginPath(); c.arc(gc.x + Math.cos(a) * 0.11 * s, gc.y + Math.sin(a) * 0.11 * s, 0.012 * s, 0, TAU); c.fill(); } }
 }
-const SKIN_DRAW = { ninja: (c, Q, s, n, b) => drawNeon(c, Q, s, n, b, true), classic: (c, Q, s, n, b) => drawNeon(c, Q, s, n, b, false), astro: drawAstro, skel: drawSkel, inferno: drawInferno, phantom: drawPhantom };
+// Juju: afro, black shades, goatee, diamond studs, a black racing jacket with neon-yellow trim, light baggy jeans.
+// The shades are his blindfold: on while he is blind, slid down his nose with his eyes showing when he reads you.
+function drawJuju(c, Q, s, now, blind) {
+  const { up, rt, tilt } = bodyFrame(Q, s), hr = 0.13 * s, unit = (a, b) => { const x = a.x - b.x, y = a.y - b.y, l = Math.hypot(x, y) || 1; return { x: x / l, y: y / l }; };
+  const add = (p, ...vs) => { let x = p.x, y = p.y; for (const [v, k] of vs) { x += v.x * k * s; y += v.y * k * s; } return { x, y }; };
+  const JK = '#111316', JK2 = '#23272c', TRIM = '#e8ff3d', DEN = '#aab3bb', DEN_D = '#7a848e', SKIN = '#c98e62', SKIN_D = '#9e6a45', HAIR = '#262427', HAIR2 = '#3a373b';
+  glowDot(c, Q.S.x, Q.S.y, 1.0 * s, '232,255,61', 0.07);
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  // baggy jeans and black shoes
+  for (const [h, k, f] of [[Q.hipL, Q.KL, Q.FL], [Q.hipR, Q.KR, Q.FR]]) {
+    const lp = new Path2D(); lp.moveTo(h.x, h.y); lp.lineTo(k.x, k.y); lp.lineTo(f.x, f.y);
+    c.strokeStyle = DEN_D; c.lineWidth = 0.17 * s; c.stroke(lp); c.strokeStyle = DEN; c.lineWidth = 0.13 * s; c.stroke(lp);
+    c.strokeStyle = 'rgba(255,255,255,.22)'; c.lineWidth = 0.02 * s; c.stroke(lp);
+    c.fillStyle = '#0b0c0e'; c.beginPath(); c.ellipse(f.x, f.y + 0.025 * s, 0.11 * s, 0.065 * s, 0, 0, TAU); c.fill();
+    c.fillStyle = 'rgba(242,242,240,.7)'; c.fillRect(f.x - 0.1 * s, f.y + 0.065 * s, 0.2 * s, Math.max(1, 0.018 * s));
+  }
+  // the jacket: broad at the shoulders, open at the front over a white tee
+  const nL = unit(Q.SL, Q.SR), nR = { x: -nL.x, y: -nL.y }, wL = unit(Q.hipL, Q.hipR), wR = { x: -wL.x, y: -wL.y };
+  const torso = () => { const AL = add(Q.SL, [nL, 0.07], [up, -0.02]), AR = add(Q.SR, [nR, 0.07], [up, -0.02]), WL = add(Q.hipL, [wL, 0.07], [up, 0.02]), WR = add(Q.hipR, [wR, 0.07], [up, 0.02]), NL = add(Q.N, [nL, 0.07]), NR = add(Q.N, [nR, 0.07]);
+    c.beginPath(); c.moveTo(NL.x, NL.y); let k = add(Q.SL, [up, 0.07], [nL, 0.02]); c.quadraticCurveTo(k.x, k.y, AL.x, AL.y); k = add(lerpP(Q.SL, Q.hipL, 0.5), [nL, 0.05]); c.quadraticCurveTo(k.x, k.y, WL.x, WL.y);
+    k = add(Q.P, [up, -0.06]); c.quadraticCurveTo(k.x, k.y, WR.x, WR.y); k = add(lerpP(Q.SR, Q.hipR, 0.5), [nR, 0.05]); c.quadraticCurveTo(k.x, k.y, AR.x, AR.y); k = add(Q.SR, [up, 0.07], [nR, 0.02]); c.quadraticCurveTo(k.x, k.y, NR.x, NR.y);
+    k = add(Q.N, [up, -0.05]); c.quadraticCurveTo(k.x, k.y, NL.x, NL.y); c.closePath(); };
+  torso(); c.fillStyle = JK; c.shadowColor = TRIM; c.shadowBlur = 0.1 * s; c.fill(); c.shadowBlur = 0; c.strokeStyle = 'rgba(232,255,61,.55)'; c.lineWidth = Math.max(1, 0.014 * s); c.stroke();
+  c.save(); torso(); c.clip();
+  // white tee down the open front
+  const tee = new Path2D(); tee.moveTo(Q.N.x, Q.N.y); tee.lineTo(lerpP(Q.N, Q.P, 1.08).x, lerpP(Q.N, Q.P, 1.08).y);
+  c.strokeStyle = '#f2f2ef'; c.lineWidth = 0.13 * s; c.lineCap = 'butt'; c.stroke(tee);
+  // trim: the front edges, a chest stripe and the waistband, in neon yellow
+  c.strokeStyle = TRIM; c.shadowColor = TRIM; c.shadowBlur = 0.06 * s; c.lineWidth = Math.max(1, 0.016 * s);
+  for (const sd of [-1, 1]) { const a = add(Q.N, [rt, sd * 0.07]), b = add(Q.P, [rt, sd * 0.07]); c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke(); }
+  for (const sd of [-1, 1]) { const m0 = lerpP(Q.S, Q.N, 0.25), a = add(m0, [rt, sd * 0.1]), b = add(m0, [rt, sd * 0.2]); c.lineWidth = Math.max(1.2, 0.035 * s); c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke(); }
+  { const a = add(Q.hipL, [wL, 0.08], [up, 0.06]), b = add(Q.hipR, [wR, 0.08], [up, 0.06]); c.strokeStyle = JK2; c.shadowBlur = 0; c.lineWidth = 0.06 * s; c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke(); }
+  c.restore();
+  // sleeves with a yellow stripe, then the mitts: black gloves with neon cuffs
+  for (const [Sh, E, H] of [[Q.SL, Q.EL, Q.HL], [Q.SR, Q.ER, Q.HR]]) {
+    const ap = new Path2D(); ap.moveTo(Sh.x, Sh.y); ap.lineTo(E.x, E.y); ap.lineTo(H.x, H.y);
+    c.lineCap = 'round'; c.strokeStyle = 'rgba(232,255,61,.5)'; c.lineWidth = 0.135 * s; c.stroke(ap); c.strokeStyle = JK; c.lineWidth = 0.11 * s; c.stroke(ap);
+    c.strokeStyle = TRIM; c.lineWidth = Math.max(0.8, 0.012 * s); c.stroke(ap);
+  }
+  for (const side of [0, 1]) { const M = mitt(Q, side), gc = { x: M.H.x + M.ux * 0.02 * s, y: M.H.y + M.uy * 0.02 * s };
+    const sd = (Q.S.x - M.H.x) * -M.uy + (Q.S.y - M.H.y) * M.ux > 0 ? 1 : -1, th = { x: gc.x - M.uy * 0.1 * s * sd - M.ux * 0.035 * s, y: gc.y + M.ux * 0.1 * s * sd - M.uy * 0.035 * s };
+    glowDot(c, gc.x, gc.y, 0.3 * s, '232,255,61', 0.3);
+    const mp = new Path2D(); mp.ellipse(gc.x, gc.y, 0.13 * s, 0.108 * s, M.a, 0, TAU); mp.moveTo(th.x + 0.045 * s, th.y); mp.arc(th.x, th.y, 0.045 * s, 0, TAU);
+    c.strokeStyle = TRIM; c.lineWidth = 0.035 * s; c.shadowColor = TRIM; c.shadowBlur = 0.12 * s; c.stroke(mp); c.shadowBlur = 0; c.fillStyle = JK; c.fill(mp);
+    c.strokeStyle = TRIM; c.lineWidth = 0.03 * s; c.beginPath(); c.moveTo(M.H.x - M.ux * 0.08 * s - M.uy * 0.075 * s, M.H.y - M.uy * 0.08 * s + M.ux * 0.075 * s); c.lineTo(M.H.x - M.ux * 0.08 * s + M.uy * 0.075 * s, M.H.y - M.uy * 0.08 * s - M.ux * 0.075 * s); c.stroke(); }
+  // neck, then the head
+  { const nk = new Path2D(), top = add(Q.Hd, [up, -0.1]); nk.moveTo(Q.N.x, Q.N.y); nk.lineTo(top.x, top.y); c.strokeStyle = SKIN_D; c.lineWidth = 0.1 * s; c.stroke(nk); c.strokeStyle = SKIN; c.lineWidth = 0.08 * s; c.stroke(nk); }
+  c.save(); c.translate(Q.Hd.x, Q.Hd.y); c.rotate(tilt);
+  // the afro: a big round cloud of curls behind and above the head
+  const ar = hr * 1.45, ay = -hr * 0.42;
+  c.fillStyle = HAIR; c.beginPath(); c.arc(0, ay, ar, 0, TAU); c.fill();
+  for (let i = 0; i < 26; i++) { const a = i * 2.399, d = ar * Math.sqrt((i + 0.5) / 26) * 0.92; c.fillStyle = i % 3 ? HAIR2 : '#454146'; c.beginPath(); c.arc(Math.cos(a) * d, ay + Math.sin(a) * d, ar * 0.17, 0, TAU); c.fill(); }
+  for (let i = 0; i < 18; i++) { const a = i / 18 * TAU; c.fillStyle = HAIR; c.beginPath(); c.arc(Math.cos(a) * ar * 0.98, ay + Math.sin(a) * ar * 0.98, ar * 0.13, 0, TAU); c.fill(); }
+  // face
+  const fg = c.createRadialGradient(-hr * 0.3, -hr * 0.3, hr * 0.1, 0, 0, hr * 1.05); fg.addColorStop(0, '#dca277'); fg.addColorStop(1, SKIN_D);
+  c.fillStyle = fg; c.beginPath(); c.ellipse(0, hr * 0.05, hr * 0.92, hr, 0, 0, TAU); c.fill();
+  c.fillStyle = HAIR; c.beginPath(); c.ellipse(0, -hr * 0.72, hr * 0.95, hr * 0.38, 0, Math.PI, TAU); c.fill(); // hairline
+  // goatee
+  c.fillStyle = '#1d1b1e'; c.beginPath(); c.moveTo(-hr * 0.34, hr * 0.62); c.quadraticCurveTo(0, hr * 0.5, hr * 0.34, hr * 0.62); c.lineTo(hr * 0.16, hr * 1.08); c.lineTo(0, hr * 0.92); c.lineTo(-hr * 0.16, hr * 1.08); c.closePath(); c.fill();
+  c.strokeStyle = '#1d1b1e'; c.lineWidth = Math.max(0.8, hr * 0.07); c.beginPath(); c.moveTo(-hr * 0.22, hr * 0.48); c.lineTo(hr * 0.22, hr * 0.48); c.stroke();
+  // diamond studs and a nose ring
+  for (const sx of [-1, 1]) { const ex = sx * hr * 0.95, ey = hr * 0.25, tw = 0.6 + 0.4 * Math.sin(now / 240 + sx * 2); c.fillStyle = '#ffffff'; c.shadowColor = '#bfefff'; c.shadowBlur = hr * 0.5 * tw; c.beginPath(); c.moveTo(ex, ey - hr * 0.13); c.lineTo(ex + hr * 0.09, ey); c.lineTo(ex, ey + hr * 0.13); c.lineTo(ex - hr * 0.09, ey); c.closePath(); c.fill(); c.shadowBlur = 0; }
+  c.strokeStyle = '#e8e8e8'; c.lineWidth = Math.max(0.7, hr * 0.04); c.beginPath(); c.arc(hr * 0.12, hr * 0.3, hr * 0.06, 0, Math.PI * 1.4); c.stroke();
+  // the shades: on while blind; slid down his nose with his eyes showing when he reads you
+  const gy = blind ? -hr * 0.12 : hr * 0.24;
+  if (!blind) { c.fillStyle = '#1a1110'; for (const sx of [-0.36, 0.36]) { c.beginPath(); c.ellipse(sx * hr, -hr * 0.2, hr * 0.11, hr * 0.08, 0, 0, TAU); c.fill(); } c.fillStyle = '#ffffff'; for (const sx of [-0.33, 0.39]) { c.beginPath(); c.arc(sx * hr, -hr * 0.23, hr * 0.03, 0, TAU); c.fill(); } }
+  c.fillStyle = '#050607'; c.strokeStyle = blind ? '#2c3036' : '#e8ff3d'; if (!blind) { c.shadowColor = '#e8ff3d'; c.shadowBlur = hr * 0.5; } c.lineWidth = Math.max(0.8, hr * 0.06); c.beginPath(); rr(c, -hr * 1.02, gy - hr * 0.2, hr * 2.04, hr * 0.42, hr * 0.08); c.fill(); c.stroke(); c.shadowBlur = 0;
+  c.strokeStyle = '#2c3036'; c.lineWidth = Math.max(0.8, hr * 0.06); c.beginPath(); c.moveTo(-hr * 1.02, gy - hr * 0.1); c.lineTo(-hr * 1.15, gy - hr * 0.16); c.moveTo(hr * 1.02, gy - hr * 0.1); c.lineTo(hr * 1.15, gy - hr * 0.16); c.stroke();
+  // a glint across the lenses (brighter, in neon yellow, the moment he reads you)
+  c.strokeStyle = blind ? 'rgba(255,255,255,.35)' : 'rgba(232,255,61,.95)'; if (!blind) { c.shadowColor = TRIM; c.shadowBlur = hr * 0.6; } c.lineWidth = Math.max(0.8, hr * 0.06);
+  const gp = blind ? 0 : ((now / 700) % 1) * 1.6 - 0.8; c.beginPath(); c.moveTo((gp - 0.12) * hr, gy + hr * 0.14); c.lineTo((gp + 0.08) * hr, gy - hr * 0.14); c.stroke(); c.shadowBlur = 0;
+  c.restore();
+}
+const lerpP = (a, b, t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+const SKIN_DRAW = { juju: drawJuju, ninja: (c, Q, s, n, b) => drawNeon(c, Q, s, n, b, true), classic: (c, Q, s, n, b) => drawNeon(c, Q, s, n, b, false), astro: drawAstro, skel: drawSkel, inferno: drawInferno, phantom: drawPhantom };
 // ---------- balls (looks only: the same size and flight) ----------
 // ---------- balls: the same neon look as the Goalies. A dark core, a few glowing lines, a glowing rim ----------
 const BALL_LOOK = {
@@ -4078,7 +4153,7 @@ function drawBallSkin(c, id, x, y, r, rot) {
 
 
 // ---------- how the Goalie looks in the game (drawing only: the physics joints and the brains are untouched) ----------
-const KIT_GLOW = { ninja: '255,36,56', classic: '205,236,255', astro: '170,210,255', skel: '125,255,154', inferno: '255,110,20', phantom: '162,107,255' };
+const KIT_GLOW = { juju: '232,255,61', ninja: '255,36,56', classic: '205,236,255', astro: '170,210,255', skel: '125,255,154', inferno: '255,110,20', phantom: '162,107,255' };
 function drawBody(pose, now, blind) {
   let kit = curKit(); if (!SKIN_DRAW[kit]) kit = 'classic';
   const s = geo.gw / GW_M, m = p => g2s(p[0] / GW_M, p[1] / GH_M), P = pose.pts, Q = {};
@@ -4411,7 +4486,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.04-2350';
+  var VERSION = '2026.11.04-2356';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess v' + (window.APP_VERSION || '1.00') + ' · build ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
