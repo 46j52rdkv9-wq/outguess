@@ -1980,7 +1980,7 @@ const SFX = {
 
 // ---------- layout ----------
 let W = 0, H = 0, DPR = 1, geo = {}, crowd = [];
-const BALL_DROP = 56; // about an inch on a phone
+const BALL_DROP = 70; // about an inch and a quarter on a phone
 function layout() {
   const r = app.getBoundingClientRect(); W = r.width; H = r.height; DPR = Math.min(2, window.devicePixelRatio || 1);
   cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); g.setTransform(DPR, 0, 0, DPR, 0, 0);
@@ -2653,9 +2653,10 @@ function hideMenu() { app.classList.remove('menu-on'); $('#menu').hidden = true;
 const goalieIQ = br => Math.round((br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total + (br === MY ? oppShots() : 0))) / 15);
 const MENU = { res: null, count: null };
 // ---------- version and what changed (each update goes up by 0.01) ----------
-const APP_VERSION = '1.05';
+const APP_VERSION = '1.06';
 const WHATS_NEW = [
   'A new swipe line: smoother, glowing, and it keeps up with your finger',
+  'The ball sits a little lower, closer to your thumb',
 ];
 window.APP_VERSION = APP_VERSION;
 function showWhatsNew() {
@@ -4063,7 +4064,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.04-0022';
+  var VERSION = '2026.11.04-0025';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess v' + (window.APP_VERSION || '1.00') + ' · build ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
