@@ -222,6 +222,29 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .coinchip{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 15px 0 11px;border-radius:20px;border:1.5px solid var(--sodium);background:var(--night)}
 .coinchip b{font:700 15px/1 var(--mono);color:var(--sodium)}
 .coinchip.pop{animation:bump .6s cubic-bezier(.2,1.6,.4,1)}
+.token{flex:none;width:16px;height:18px;display:inline-block;background:linear-gradient(135deg,#a7f2ff,#5fe1ff 50%,#9a6bff);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);filter:drop-shadow(0 0 6px rgba(95,225,255,.55))}
+.token.big{width:26px;height:30px}
+.tokchip{border-color:#5fe1ff}
+.tokchip b{color:#5fe1ff}
+.chips{display:flex;gap:8px;align-items:center}
+.coinbar b.tok{color:#5fe1ff}
+.stsec{font:900 22px/1 var(--display);letter-spacing:.04em;text-transform:uppercase;margin:10px 0 2px}
+.item canvas{width:92px;height:110px;display:block;border-radius:10px;background:radial-gradient(circle at 50% 30%,#14302a,#030a0b)}
+.item.ballitem canvas{height:92px}
+.item .buy .token{width:12px;height:14px}
+.daily{display:grid;gap:6px;padding:12px;border-radius:14px;box-shadow:inset 0 0 0 1.5px var(--line)}
+.daily h3{margin:0 0 4px;font:700 12px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--chalk-2)}
+.daily .ch{display:flex;justify-content:space-between;gap:10px;align-items:center;font:500 15px/1.3 var(--body)}
+.daily .ch i{font:600 13px/1 var(--mono);font-style:normal;color:#5fe1ff;white-space:nowrap}
+.daily .ch.done{color:var(--chalk-2);text-decoration:line-through}
+.daily .ch.done i{color:var(--good);text-decoration:none}
+#tokPop{position:absolute;left:50%;top:var(--tokTop,150px);transform:translate(-50%,-100%);z-index:6;pointer-events:none;display:flex;flex-direction:column-reverse;align-items:center;gap:6px;max-width:92vw}
+#tokPop .tp{display:inline-flex;align-items:center;gap:8px;padding:7px 13px 7px 10px;border-radius:16px;background:rgba(3,10,11,.86);box-shadow:inset 0 0 0 1.5px #5fe1ff,0 0 18px rgba(95,225,255,.35);font:900 17px/1 var(--display);letter-spacing:.05em;text-transform:uppercase;color:var(--chalk);white-space:nowrap;animation:tokIn 2.2s cubic-bezier(.2,1.4,.4,1) both}
+#tokPop .tp b{color:#5fe1ff;font:700 15px/1 var(--mono)}
+#tokPop .tp small{display:block;margin-top:3px;font:600 11px/1.1 var(--mono);color:var(--chalk-2);letter-spacing:.02em;text-transform:none}
+#tokPop .tp span.tt{display:flex;flex-direction:column}
+@keyframes tokIn{0%{opacity:0;transform:translateY(10px) scale(.7)}12%{opacity:1;transform:translateY(0) scale(1.06)}20%{transform:scale(1)}80%{opacity:1;transform:translateY(-6px)}100%{opacity:0;transform:translateY(-26px) scale(.96)}}
+@media (prefers-reduced-motion: reduce){#tokPop .tp{animation-duration:2.2s;animation-timing-function:linear}}
 .mcard{margin-top:12px;display:grid;gap:10px;padding:11px 14px 12px;border-radius:16px;background:color-mix(in srgb,var(--night) 74%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:inset 0 0 0 1px var(--line),0 12px 30px rgba(0,0,0,.35)}
 .mres{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:9px;border-bottom:1px solid var(--line)}
 .mres[hidden]{display:none}
@@ -370,6 +393,7 @@ h1,h2,h3{margin:0;text-wrap:balance}
 </head>
 <body>
 <div id="app">
+  <div id="tokPop" aria-live="polite"></div>
   <canvas id="stage" aria-label="Penalty pitch. Swipe up from the ball to shoot."></canvas>
 
   <header id="hud">
@@ -396,7 +420,7 @@ h1,h2,h3{margin:0;text-wrap:balance}
     <div>
       <div class="mtop">
         <span class="mark">Out<span>guess</span></span>
-        <button class="coinchip" id="mCoins" aria-label="Coins: open the store"><span class="coin"></span><b id="mCoinN">0</b></button>
+        <div class="chips"><button class="coinchip" id="mCoins" aria-label="Coins: open the Shot Trainer"><span class="coin"></span><b id="mCoinN">0</b></button><button class="coinchip tokchip" id="mTokens" aria-label="Tokens: open the store"><span class="token"></span><b id="mTokN">0</b></button></div>
         <button class="icon" id="mSet" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
       </div>
       <div class="whatsnew" id="whatsnew" hidden role="dialog" aria-labelledby="wnTitle">
@@ -515,11 +539,15 @@ h1,h2,h3{margin:0;text-wrap:balance}
   <section class="sheet" id="store" hidden>
     <div class="inner" style="align-content:start">
       <div class="brainhead">
-        <div><h2>Store</h2><p>Kits for your Goalie. Looks only: a kit never changes how it plays.</p></div>
+        <div><h2>Store</h2><p>Goalies and balls. Looks only: nothing here changes how anything plays.</p></div>
         <button class="pill" id="closeStore">Back</button>
       </div>
-      <div class="coinbar"><span class="coin big"></span><b id="stCoins">0</b><p id="stLine">coins. Win a match against your Goalie to earn one.</p></div>
+      <div class="coinbar"><span class="token big"></span><b class="tok" id="stTok">0</b><p id="stLine">tokens. Earn them with trick shots, wins and daily challenges.</p></div>
+      <div class="daily" id="stDaily"></div>
+      <h3 class="stsec">Goalies</h3>
       <div class="items" id="stItems"></div>
+      <h3 class="stsec">Balls</h3>
+      <div class="items" id="stBalls"></div>
     </div>
   </section>
 
@@ -1912,7 +1940,10 @@ const MY_KEY = 'outguess6', SUPER_KEY = 'outguess6s', KEEP_LOADED = 60;
 let META = MY_KEY;
 const GKEY = n => META + '.g' + n;
 const meta = store.get(META, null) || {};
-const S = { seenVer: meta.seenVer || null, pid: meta.pid || null, name: meta.name || null, slid: meta.slid || 0, kit: meta.kit || 'classic', owned: Array.isArray(meta.owned) ? meta.owned : [], coins: meta.coins || 0, trail: meta.trail || null, devR: meta.devR || null, best: meta.best || 0, mem: meta.mem !== false, sound: meta.sound !== false, bait: !!meta.bait, superOn: false, sel: 'mine', practice: meta.practice !== false };
+const S = { seenVer: meta.seenVer || null, pid: meta.pid || null, name: meta.name || null, slid: meta.slid || 0, kit: meta.kit || 'classic', owned: Array.isArray(meta.owned) ? meta.owned : [], coins: meta.coins || 0, trail: meta.trail || null, devR: meta.devR || null, best: meta.best || 0, mem: meta.mem !== false, sound: meta.sound !== false, bait: !!meta.bait, superOn: false, sel: 'mine', practice: meta.practice !== false, tokens: meta.tokens || 0, ball: meta.ball || 'soccer', ownedBalls: Array.isArray(meta.ownedBalls) ? meta.ownedBalls : [], daily: meta.daily || null, refunded: !!meta.refunded, kitMig: !!meta.kitMig };
+// v1.08: the Ninja is everyone's starting Goalie, free. If you bought it with coins, they come back
+if (!S.kitMig) { S.kitMig = true; if (S.owned.includes('ninja') && !S.refunded) { S.coins = (S.coins || 0) + 5; S.refunded = true; } if (S.kit === 'classic') S.kit = 'ninja'; }
+if (!meta.kit && !meta.kitMig) S.kit = 'ninja';
 // data from earlier versions of the game is left alone (not loaded, so it can't slow anything down) until you save it or delete it
 const allKeys = () => { const ks = []; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('outguess')) ks.push(k); } } catch (e) {} return ks.sort(); };
 const oldKeys = () => allKeys().filter(k => !k.startsWith('outguess6'));
@@ -1935,7 +1966,7 @@ let MY = loadBrain(meta, MY_KEY), B = MY, SB = null;
 const brainMeta = br => ({ bp: br.bp, net: br.net, gameCount: br.gameCount, firstGame: br.firstGame, trainFrom: br.trainFrom, careerMs: Math.round(br.careerMs), log: br.log, acc: br.acc, loss: br.loss.slice(-60), total: br.total, tau: br.tau,
   m2: { ver: BRAIN2_VER, w: packW(br.m2.th), gen: br.m2.gen, hist: br.m2.hist.slice(-200), trainMs: Math.round(br.m2.trainMs), shots: br.m2.shots || 0, practice: br.m2.practice || 0 }, body: { snaps: (br.body ? br.body.snaps : []).slice(-60) }, book: br.book || [] });
 function persist() {
-  const m = { ver: 6, brains: BRAINS_VER, best: S.best, mem: S.mem, sound: S.sound, bait: S.bait, sel: S.sel, practice: S.practice, devR: S.devR, trail: S.trail, coins: S.coins, kit: S.kit, owned: S.owned, slid: S.slid, pid: S.pid, name: S.name, seenVer: S.seenVer };
+  const m = { ver: 6, brains: BRAINS_VER, best: S.best, mem: S.mem, sound: S.sound, bait: S.bait, sel: S.sel, practice: S.practice, devR: S.devR, trail: S.trail, coins: S.coins, kit: S.kit, owned: S.owned, slid: S.slid, pid: S.pid, name: S.name, seenVer: S.seenVer, tokens: S.tokens, ball: S.ball, ownedBalls: S.ownedBalls, daily: S.daily, refunded: S.refunded, kitMig: S.kitMig };
   if (S.mem) Object.assign(m, brainMeta(MY));
   const mine = G.mode === 'mine' && G.chunk;
   const save = () => store.set(MY_KEY, m) && (!S.mem || !mine || store.set(GKEY(G.chunk.n), G.chunk));
@@ -1984,6 +2015,7 @@ function hiss(dur, freq, q, vol, attack = 0.01, delay = 0) {
   s.connect(f).connect(gn).connect(a.destination); s.start(t); s.stop(t + dur + 0.05);
 }
 const SFX = {
+  token() { tone(988, 988, 0.08, 'triangle', 0.09); tone(1319, 1319, 0.12, 'triangle', 0.09, 0.07); tone(1760, 1760, 0.18, 'sine', 0.06, 0.15); },
   kick() { tone(150, 45, 0.15, 'sine', 0.55); hiss(0.05, 2500, 1, 0.25); },
   goal() { hiss(1.6, 900, 0.5, 0.22, 0.2); tone(523, 523, 0.16, 'triangle', 0.12, 0.05); tone(659, 659, 0.16, 'triangle', 0.12, 0.16); tone(784, 784, 0.4, 'triangle', 0.13, 0.27); },
   save() { tone(95, 40, 0.22, 'sine', 0.5); hiss(0.7, 420, 0.8, 0.16, 0.08); },
@@ -2358,6 +2390,7 @@ function resolveShot() {
   rec.w = outNet === 0 ? (rec.gk && rec.gk.gap != null && rec.gk.gap < 0.6 ? 2 : 1.5) : outNet === 1 ? 0.8 : 1;
   if (onTarget && G.mode !== 'online') B.tau = clamp(B.tau + 0.04 * (sh.peak.cov - (hit ? 1 : 0)), 0.6, 2.5);
   rec.out = outNet; rec.hit = hit ? 1 : 0;
+  try { trickTokens(sh); } catch (e) {}
   recordEvent(rec);
   if (trainable(rec) && G.mode !== 'online') trainShot(B, B.flat[B.flat.length - 1], rec);
   B.lastX = sh.x; B.lastH = sh.h; B.lastP = sh.pred;
@@ -2383,6 +2416,7 @@ function gameOver() {
   Object.assign(G.chunk, { done: true, end: Math.round(B.careerMs), you: G.you, gk: G.gk, score: 0 });
   Object.assign(G.chunk.m2, { genEnd: B.m2.gen, shotsEnd: B.m2.shots || 0, score: r3(b2Score()) });
   const coin = won && G.mode === 'mine'; if (coin) S.coins = (S.coins || 0) + 1;
+  if (coin) winTokens(false, G.you, G.gk);
   MENU.res = { won, you: G.you, gk: G.gk, coin, br: B, iq0: G.iq0 != null ? G.iq0 : goalieIQ(B), sup: G.mode === 'super' };
   MENU.count = { t0: performance.now() + 450 };
   persist(); showMenu(); updateHUD();
@@ -2583,7 +2617,7 @@ function oppRecord(pid, ev, matchN) {
 // what your phone sends before a match: your Goalie as it will face THIS opponent (frozen for the match), plus your kit
 function goalieSnapshot(pid, name) {
   const o = pid ? oppGet(pid, name) : null;
-  return { v: 1, pid: S.pid, name: S.name, kit: S.kit, brains: BRAINS_VER, b2ver: BRAIN2_VER,
+  return { v: 1, pid: S.pid, name: S.name, kit: S.kit, ball: S.ball || 'soccer', brains: BRAINS_VER, b2ver: BRAIN2_VER,
     b1: packNet(o ? o.net : GEN.net), tau: o ? o.tau : GEN.tau, bp: packFlat(o ? o.bp : MY.bp), b2: packW(MY.m2.th),
     book: (MY.book || []).map(e => ({ pos: e.pos, tx: e.tx, ty: e.ty, x0: e.x0, plan: e.plan })) };
 }
@@ -2686,11 +2720,12 @@ function hideMenu() { app.classList.remove('menu-on'); $('#menu').hidden = true;
 const goalieIQ = br => Math.round((br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total + (br === MY ? oppShots() : 0))) / 15);
 const MENU = { res: null, count: null };
 // ---------- version and what changed (each update goes up by 0.01) ----------
-const APP_VERSION = '1.07';
-window.OG_VER = APP_VERSION;
+const APP_VERSION = '1.08';
 const WHATS_NEW = [
-  'Smoother on iPhone: less work for the phone while you play',
-  'If the game crashes, Settings has a problem report you can send',
+  'Tokens: earn them with trick shots, wins and three daily challenges',
+  'The Ninja is everyone\'s Goalie now, plus 4 new Goalies and 5 new balls in the Store',
+  'Coins are just for the Shot Trainer. If you bought the Ninja, your 5 coins are back',
+  'Goals now fly off into deep space behind the net',
 ];
 window.APP_VERSION = APP_VERSION;
 function showWhatsNew() {
@@ -2732,6 +2767,7 @@ function fillStats(now = performance.now()) {
   if (R && MENU.count) { const t = clamp((now - MENU.count.t0) / 1400, 0, 1); shown = Math.round(R.iq0 + (iq - R.iq0) * ease(t)); if (t >= 1) MENU.count = null; }
   $('#mIQ').textContent = fmt(shown);
   $('#mIQsub').textContent = R && iq > R.iq0 ? `+${fmt(iq - R.iq0)} from that match` : '';
+  $('#mCoinN').textContent = S.coins || 0; $('#mTokN').textContent = S.tokens || 0;
   const o = oddsNext(sup);
   $('#mOddsL').textContent = 'Its odds next match';
   $('#mOdds').textContent = o == null ? '?' : Math.round(o * 100) + '%';
@@ -2880,46 +2916,134 @@ function openTrainer() { trShow = 40; paintTrainer(); $('#trainer').hidden = fal
 $('#shotList').addEventListener('click', e => { const b = e.target.closest('.train'); if (!b || b.disabled) return; const x = trainerShots().find(x => shotKey(x.f) === b.dataset.k); if (x) { audio(); trainBook(x.f); $('#trainer').scrollTop = 0; } });
 $('#moreShots').addEventListener('click', () => { trShow += 40; paintTrainer(); });
 $('#closeTrainer').addEventListener('click', () => { $('#trainer').hidden = true; if (BOOK.job && BOOK.job.done) BOOK.job = null; fillMenu(); });
-$('#mCoins').addEventListener('click', () => openStore());
+$('#mCoins').addEventListener('click', () => openTrainer());
+$('#mTokens').addEventListener('click', () => openStore());
 $('#mTrainer').addEventListener('click', openTrainer);
 $('#mStore').addEventListener('click', () => openStore());
 $('#oTrainer').addEventListener('click', openTrainer);
 // ---------- STORE: kits for your Goalie (looks only) ----------
 const KITS = [
-  { id: 'classic', name: 'Classic', price: 0, desc: 'White neon with glowing red mitts.' },
-  { id: 'ninja', name: 'Ninja', price: 5, desc: 'Shadow black with a red glow. The red blindfold never comes off.' },
+  { id: 'ninja', name: 'Ninja', price: 0, desc: 'Shadow black with a red glow. The red blindfold never comes off.' },
+  { id: 'classic', name: 'Neon', price: 0, desc: 'White neon with glowing red mitts. Red blindfold until it reads you.' },
+  { id: 'astro', name: 'Astronaut', price: 15, desc: 'Puffy suit and backpack. Its visor is black while blind and turns gold when it reads you.' },
+  { id: 'skel', name: 'Skeleton', price: 20, desc: 'Bones and a skull with a green glow. The sockets light up when it reads you.' },
+  { id: 'inferno', name: 'Inferno', price: 30, desc: 'A body of fire with fireball mitts. It smoulders while blind and blazes when it reads you.' },
+  { id: 'phantom', name: 'Phantom', price: 40, desc: 'A hooded violet ghost that leaves afterimages. The hood lights up when it reads you.' }
 ];
-function kitSvg(id) {
-  // a small portrait of each kit, matching the neon Goalie in the game
-  const nj = id === 'ninja', core = nj ? '#0b0d0f' : '#ffffff', glow = nj ? '#ff2438' : '#cdecff', rim = nj ? '#ff3346' : null, mitt = nj ? '#15181b' : '#ff2d4a', medge = nj ? '#ff3346' : '#ff7a8a', f = 'kg' + id;
-  const sk = 'M35 99 L38 82 L46 64 L54 82 L57 99 M46 64 L46 46 L46 36 M20 42 L27 54 L36 39 L56 39 L65 54 L72 42';
-  const face = '';
-  const band = nj ? `<line x1="37" y1="23.5" x2="55" y2="23.5" stroke="#ff2e38" stroke-width="4.4" filter="url(#${f}r)"/><path d="M37 23.5 q-7 1 -12 6 M37 23.5 q-7 -2 -12 -1" stroke="#ff2e38" stroke-width="1.8" stroke-linecap="round" fill="none"/>` : '';
-  return `<svg viewBox="0 0 92 110" aria-hidden="true"><defs><filter id="${f}" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.4"/></filter><filter id="${f}r" x="-50%" y="-80%" width="200%" height="260%"><feGaussianBlur stdDeviation="1.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>` +
-    `<ellipse cx="46" cy="102" rx="20" ry="3.4" fill="${glow}" opacity=".16"/>` +
-    `<path d="${sk}" stroke="${glow}" stroke-width="7" opacity=".35" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#${f})"/>` +
-    (rim ? `<path d="${sk}" stroke="${rim}" stroke-width="3.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>` : '') +
-    `<path d="${sk}" stroke="${core}" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>` +
-    `<circle cx="46" cy="25" r="11" fill="${glow}" opacity=".3" filter="url(#${f})"/><circle cx="46" cy="25" r="9" fill="${nj ? '#0b0d0f' : '#071113'}" stroke="${rim || core}" stroke-width="1.8"/>` + face + band +
-    [[18.5, 39.5], [73.5, 39.5]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="10" fill="#ff2846" opacity=".45" filter="url(#${f})"/><ellipse cx="${x}" cy="${y}" rx="6.2" ry="5.4" fill="${mitt}" stroke="${medge}" stroke-width="1"/>`).join('') +
-    `</svg>`;
+const BALLS = [
+  { id: 'soccer', name: 'Classic', price: 0, desc: "The ball it all started with." },
+  { id: 'basket', name: 'Basketball', price: 8, desc: 'Pebbled orange with black seams.' },
+  { id: 'base', name: 'Baseball', price: 8, desc: 'Red stitching that rolls as it spins.' },
+  { id: 'tennis', name: 'Tennis ball', price: 10, desc: 'Fuzzy yellow-green with a white seam.' },
+  { id: 'beach', name: 'Beach ball', price: 12, desc: 'Six bright panels spinning round.' },
+  { id: 'planet', name: 'Planet', price: 25, desc: 'A banded gas giant with its own ring.' }
+];
+const ownsKit = id => { const k = KITS.find(k => k.id === id); return !!k && (k.price === 0 || S.owned.includes(id)); };
+const ownsBall = id => { const b = BALLS.find(b => b.id === id); return !!b && (b.price === 0 || S.ownedBalls.includes(id)); };
+function curBall() { const b = G.mode === 'online' && !G.mine && G.rep ? (ON.opp && ON.opp.ball) || 'soccer' : S.ball || 'soccer'; return BALLS.some(x => x.id === b) ? b : 'soccer'; }
+// ---------- daily challenges: three a day, the same three for the whole day ----------
+const DAILY = [
+  { id: 'bins2', t: 'Score 2 Top Bins', n: 2, ev: 'bins' }, { id: 'rocket3', t: 'Score 3 Rockets', n: 3, ev: 'rocket' },
+  { id: 'banana2', t: 'Score 2 Bananas', n: 2, ev: 'banana' }, { id: 'wrong2', t: 'Send it the Wrong Way twice', n: 2, ev: 'wrong' },
+  { id: 'panenka1', t: 'Score a Panenka', n: 1, ev: 'panenka' }, { id: 'hat1', t: 'Score a hat-trick', n: 1, ev: 'hat' },
+  { id: 'win1', t: 'Win a match', n: 1, ev: 'win' }, { id: 'big1', t: 'Win a match 10–5 or better', n: 1, ev: 'bigwin' },
+  { id: 'spots4', t: 'Score from 4 different ball spots', n: 4, ev: 'spot' }, { id: 'goals15', t: 'Score 15 goals', n: 15, ev: 'goal' }
+];
+const dayKey = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+function daily() {
+  const k = dayKey();
+  if (!S.daily || S.daily.day !== k) {
+    let h = 0; for (const ch of k) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const pool = DAILY.map(d => d.id), ids = [];
+    while (ids.length < 3) { h = (h * 1103515245 + 12345) >>> 0; const i = h % pool.length; ids.push(pool.splice(i, 1)[0]); }
+    S.daily = { day: k, ids, prog: {}, done: {}, spots: [] };
+  }
+  return S.daily;
 }
+const TOKEN_FOR_DAILY = 5;
+// ---------- tokens: trick shots, wins and challenges ----------
+const TRICKS = { bins: ['Top Bins', 2], rocket: ['Rocket', 1], banana: ['Banana', 1], wrong: ['Wrong Way', 1], panenka: ['Panenka', 3], hat: ['Hat-trick', 2] };
+function tokenPop(items) {
+  if (!items.length) return;
+  const box = $('#tokPop'); try { box.style.setProperty('--tokTop', Math.round(geo.gyt - 10) + 'px'); } catch (e) {}
+  items.forEach((it, i) => { const el = document.createElement('div'); el.className = 'tp'; el.style.animationDelay = (i * 0.28) + 's'; el.innerHTML = `<span class="token"></span><span class="tt"><span>${it.name} <b>+${it.n}</b></span>${it.sub ? `<small>${it.sub}</small>` : ''}</span>`; box.appendChild(el); setTimeout(() => el.remove(), 2400 + i * 280); });
+  setTimeout(() => SFX.token(), 120);
+}
+function dailyEvent(ev, n = 1, extra) {
+  const D = daily(), out = [];
+  if (ev === 'spot') { if (D.spots.includes(extra)) return out; D.spots.push(extra); }
+  for (const id of D.ids) {
+    const d = DAILY.find(x => x.id === id); if (!d || d.ev !== ev || D.done[id]) continue;
+    D.prog[id] = (D.prog[id] || 0) + n;
+    if (D.prog[id] >= d.n) { D.done[id] = true; S.tokens += TOKEN_FOR_DAILY; out.push({ name: 'Challenge done', n: TOKEN_FOR_DAILY, sub: d.t }); }
+  }
+  return out;
+}
+const earns = () => G.mode === 'mine' || G.mode === 'online';
+// your goal: was it a trick shot? (only your own shots against a Goalie, in a match or online)
+function trickTokens(sh) {
+  if (!earns() || sh.outcome !== 'goal') return;
+  const got = [], D = G.dive, bodyDx = D && D.R ? D.R.s.X[0] - D.sc.x0 : 0, ballDx = sh.gx * GW_M - (D ? D.sc.x0 : GW_M / 2);
+  if (sh.gy >= 0.72 && (sh.gx <= 0.2 || sh.gx >= 0.8)) got.push('bins');
+  if (sh.pw >= 0.98) got.push('rocket');
+  if (Math.abs(sh.curve) >= 0.2) got.push('banana');
+  if (Math.abs(bodyDx) > 0.6 && Math.abs(ballDx) > 0.9 && Math.sign(bodyDx) !== Math.sign(ballDx)) got.push('wrong');
+  if (sh.pw <= 0.25 && sh.gx > 0.38 && sh.gx < 0.62) got.push('panenka');
+  if (G.streak > 0 && G.streak % 3 === 0) got.push('hat');
+  const items = got.map(k => { S.tokens += TRICKS[k][1]; return { name: TRICKS[k][0], n: TRICKS[k][1] }; });
+  for (const k of got) items.push(...dailyEvent(k));
+  items.push(...dailyEvent('goal'), ...dailyEvent('spot', 1, G.pos));
+  tokenPop(items); if (items.length) persist();
+}
+function winTokens(online, you, gk) {
+  const n = online ? 5 : 3; S.tokens += n;
+  const items = [{ name: online ? 'Online win' : 'Match won', n }, ...dailyEvent('win')];
+  if (!online && gk <= 5) items.push(...dailyEvent('bigwin'));
+  setTimeout(() => tokenPop(items), 900); persist();
+}
+// ---------- the store: each Goalie and ball drawn live with the game's own drawing code ----------
 function paintStore() {
-  $('#stCoins').textContent = S.coins || 0;
-  $('#stLine').textContent = `${(S.coins || 0) === 1 ? 'coin' : 'coins'}. Win a match against your Goalie to earn one.`;
-  $('#stItems').innerHTML = KITS.map(k => {
-    const own = k.price === 0 || S.owned.includes(k.id), on = S.kit === k.id;
-    const btn = on ? '<span class="have">Wearing it</span>' : own ? `<button class="buy eq" data-eq="${k.id}">Wear it</button>` : `<button class="buy" data-buy="${k.id}" ${(S.coins || 0) < k.price ? 'disabled' : ''}>Buy <span class="coin"></span>${k.price}</button>`;
-    return `<div class="item${on ? ' on' : ''}">${kitSvg(k.id)}<div><h3>${k.name}</h3><p>${k.desc}</p>${btn}</div></div>`;
-  }).join('') + '<div class="item soon">More kits coming soon.</div>';
+  $('#stTok').textContent = S.tokens || 0;
+  const D = daily();
+  $('#stDaily').innerHTML = `<h3>Today's challenges · +${TOKEN_FOR_DAILY} each</h3>` + D.ids.map(id => { const d = DAILY.find(x => x.id === id); if (!d) return ''; const done = !!D.done[id], pr = Math.min(d.n, D.prog[id] || 0); return `<div class="ch${done ? ' done' : ''}"><span>${d.t}</span><i>${done ? 'done' : `${pr}/${d.n}`}</i></div>`; }).join('');
+  const row = (it, kind) => {
+    const own = kind === 'kit' ? ownsKit(it.id) : ownsBall(it.id), on = kind === 'kit' ? S.kit === it.id : (S.ball || 'soccer') === it.id;
+    const btn = on ? '<span class="have">' + (kind === 'kit' ? 'In goal' : 'Using it') + '</span>' : own ? `<button class="buy eq" data-eq="${it.id}" data-kind="${kind}">${kind === 'kit' ? 'Put in goal' : 'Use it'}</button>` : `<button class="buy" data-buy="${it.id}" data-kind="${kind}" ${(S.tokens || 0) < it.price ? 'disabled' : ''}>Buy <span class="token"></span>${it.price}</button>`;
+    return `<div class="item${on ? ' on' : ''}${kind === 'ball' ? ' ballitem' : ''}"><canvas data-${kind}="${it.id}" aria-hidden="true"></canvas><div><h3>${it.name}</h3><p>${it.desc}</p>${btn}</div></div>`;
+  };
+  $('#stItems').innerHTML = KITS.map(k => row(k, 'kit')).join('');
+  $('#stBalls').innerHTML = BALLS.map(b => row(b, 'ball')).join('');
+}
+const STORE_REST = (() => { try { return MB.create(GW_M / 2); } catch (e) { return null; } })();
+function drawStore(now) {
+  if ($('#store').hidden || !STORE_REST) return;
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  document.querySelectorAll('#store canvas').forEach(cv => {
+    const r = cv.getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight) return;
+    const w = Math.round(r.width * dpr), h = Math.round(r.height * dpr); if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+    const c = cv.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, w, h);
+    if (cv.dataset.kit) {
+      const s = h / 2.25, b = (0.5 - 0.5 * Math.cos(now / 290)) * 0.035, X = STORE_REST.X, Y = STORE_REST.Y, Q = {};
+      ['P', 'S', 'N', 'Hd', 'SL', 'SR', 'hipL', 'hipR', 'EL', 'HL', 'ER', 'HR', 'KL', 'FL', 'KR', 'FR'].forEach((n, i) => { const lift = n === 'FL' || n === 'FR' ? 0 : n === 'KL' || n === 'KR' ? b * 0.5 : b; Q[n] = { x: w / 2 + (X[i] - GW_M / 2) * s, y: h - 0.16 * s - (Y[i] - lift) * s }; });
+      // it shows its blindfold for a moment, then what it looks like when it reads you
+      const id = cv.dataset.kit, blind = Math.floor(now / 1600) % 2 === 0, fn = SKIN_DRAW[id] || SKIN_DRAW.classic;
+      c.save(); fn(c, Q, s, now, blind, []); c.restore();
+    } else if (cv.dataset.ball) drawBallSkin(c, cv.dataset.ball, w / 2, h / 2, Math.min(w, h) * (cv.dataset.ball === 'planet' ? 0.24 : 0.3), now / 700);
+  });
 }
 function openStore() { paintStore(); $('#store').hidden = false; $('#store').scrollTop = 0; }
-$('#stItems').addEventListener('click', e => {
+function storeClick(e) {
   const b = e.target.closest('button'); if (!b || b.disabled) return;
-  if (b.dataset.buy) { const k = KITS.find(k => k.id === b.dataset.buy); if (!k || (S.coins || 0) < k.price) return; S.coins -= k.price; S.owned.push(k.id); S.kit = k.id; audio(); SFX.goal(); }
-  if (b.dataset.eq) S.kit = b.dataset.eq;
+  const kind = b.dataset.kind, list = kind === 'ball' ? BALLS : KITS;
+  if (b.dataset.buy) {
+    const it = list.find(x => x.id === b.dataset.buy); if (!it || (S.tokens || 0) < it.price) return;
+    S.tokens -= it.price; if (kind === 'ball') { S.ownedBalls.push(it.id); S.ball = it.id; } else { S.owned.push(it.id); S.kit = it.id; } audio(); SFX.goal();
+  }
+  if (b.dataset.eq) { if (kind === 'ball') S.ball = b.dataset.eq; else S.kit = b.dataset.eq; }
   persist(); paintStore(); fillMenu();
-});
+}
+$('#stItems').addEventListener('click', storeClick);
+$('#stBalls').addEventListener('click', storeClick);
 $('#closeStore').addEventListener('click', () => { $('#store').hidden = true; fillMenu(); });
 // ---------- ONLINE: play a friend ----------
 // One shot each, first to 10. Your phone runs a frozen copy of their Goalie when you shoot; theirs runs yours.
@@ -2943,7 +3067,7 @@ const fmtCode = c => c ? c.slice(0, 3) + '-' + c.slice(3) : '';
 const cleanCode = t => (t || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
 // their Goalie, rebuilt from what their phone sent: their read on you, their body, their trained shots, their kit
 function goalieFrom(sn) {
-  return { pid: sn.pid, name: sn.name, kit: sn.kit || 'classic', net: unpackNet(sn.b1), tau: sn.tau || 1, bp: unpackFlat(sn.bp), m2: { th: unpackW(sn.b2), gen: 0, hist: [], trainMs: 0, shots: 0 },
+  return { pid: sn.pid, name: sn.name, kit: sn.kit || 'classic', ball: sn.ball || 'soccer', net: unpackNet(sn.b1), tau: sn.tau || 1, bp: unpackFlat(sn.bp), m2: { th: unpackW(sn.b2), gen: 0, hist: [], trainMs: 0, shots: 0 },
     book: sn.book || [], games: [], flat: [], log: [], acc: [], loss: [], total: 0, catchup: 0, lastX: null, lastH: null, lastP: null, body: freshBody() };
 }
 // the heat map and the Goalie's movement, packed small
@@ -3147,6 +3271,7 @@ async function onEnd(kind) {
   if (ON.over) return; ON.over = true;
   const won = kind === 'won' || kind === 'left', o = OPPS.get(ON.oppPid), name = ON.oppName, code = ON.code, side = ON.side, sb = ON.sb;
   if (o) { if (won) o.wins++; else o.losses++; o.dirty = true; }
+  if (won && kind === 'won') winTokens(true, G.you, G.gk);
   MENU.res = { won, you: G.you, gk: G.gk, coin: false, br: MY, iq0: G.iq0 != null ? G.iq0 : goalieIQ(MY), opp: name };
   MENU.count = { t0: performance.now() + 450 };
   if ((kind === 'won' || kind === 'lost') && sb) sb.from('matches').update({ state: 'done', winner: won ? side : (side === 'host' ? 'guest' : 'host'), updated_at: new Date().toISOString() }).eq('code', code).then(() => {}, () => {});
@@ -3792,66 +3917,202 @@ function drawHeat(q, land, peak, alpha) {
   if (land) { const p = g2s(land.x, land.y); g.strokeStyle = C.chalk; g.lineWidth = 2.5; g.beginPath(); g.arc(p.x, p.y, 7, 0, 7); g.stroke(); }
   g.restore();
 }
-// ---------- how the Goalie looks (drawing only: the physics joints and the brains are untouched) ----------
-// A neon stick figure hung on the engine's joints. The mitts are drawn at the size of the real gloves, so what you see is what blocks.
-const NEON = {
-  classic: { core: '#ffffff', glow: '205,236,255', rim: null, mitt: '#ff2d4a', mittHot: '#ffd2d8', mittDeep: '#b80f28', mittEdge: '#ff7a8a', mittGlow: '255,40,70', head: '#071113', face: '#ffffff', band: '#ff2d4a', tails: 1 },
-  ninja: { core: '#0b0d0f', glow: '255,36,56', rim: '#ff3346', mitt: '#15181b', mittHot: '#3b1a1f', mittDeep: '#0b0d0f', mittEdge: '#ff3346', mittGlow: '255,36,56', head: '#0b0d0f', face: '#ff5a68', band: '#ff2e38', tails: 1.8 }
-};
+// ---------- characters (looks only: every one hangs on the same engine joints) ----------
+const TAU = Math.PI * 2;
+const rr = (c, x, y, w, h, r) => { if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h); };
+function bodyFrame(Q, s) {
+  const up = (() => { const dx = Q.N.x - Q.P.x, dy = Q.N.y - Q.P.y, l = Math.hypot(dx, dy) || 1; return { x: dx / l, y: dy / l }; })(), rt = { x: -up.y, y: up.x };
+  return { up, rt, tilt: Math.atan2(up.y, up.x) + Math.PI / 2 };
+}
+function skelPath(Q, hr, up) {
+  const sk = new Path2D(), poly = (...q) => { sk.moveTo(q[0].x, q[0].y); for (let i = 1; i < q.length; i++) sk.lineTo(q[i].x, q[i].y); };
+  const neckTop = { x: Q.Hd.x - up.x * hr, y: Q.Hd.y - up.y * hr };
+  poly(Q.FL, Q.KL, Q.P, Q.KR, Q.FR); poly(Q.P, Q.S, Q.N, neckTop); poly(Q.HL, Q.EL, Q.SL, Q.SR, Q.ER, Q.HR); return sk;
+}
+const mitt = (Q, side) => { const E = side ? Q.ER : Q.EL, H = side ? Q.HR : Q.HL, dx = H.x - E.x, dy = H.y - E.y, l = Math.hypot(dx, dy) || 1; return { E, H, ux: dx / l, uy: dy / l, a: Math.atan2(dy, dx) }; };
+function glowDot(c, x, y, r, rgb, a) { const g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, `rgba(${rgb},${a})`); g.addColorStop(1, `rgba(${rgb},0)`); c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); }
+function layered(c, path, layers) { c.lineCap = 'round'; c.lineJoin = 'round'; for (const [col, w, blur] of layers) { c.strokeStyle = col; c.lineWidth = Math.max(1, w); if (blur) { c.shadowColor = col; c.shadowBlur = blur; } c.stroke(path); c.shadowBlur = 0; } }
+function blindBand(c, hd, hr, rt, up, col, now, tails) {
+  const ey = { x: hd.x - up.x * hr * 0.12, y: hd.y - up.y * hr * 0.12 }, bw = hr * 0.5;
+  c.strokeStyle = col; c.lineWidth = bw; c.lineCap = 'butt'; c.shadowColor = col; c.shadowBlur = hr * 0.9;
+  c.beginPath(); c.moveTo(ey.x - rt.x * hr * 1.08, ey.y - rt.y * hr * 1.08); c.lineTo(ey.x + rt.x * hr * 1.08, ey.y + rt.y * hr * 1.08); c.stroke();
+  const kx = ey.x - rt.x * hr * 1.08, ky = ey.y - rt.y * hr * 1.08, fl = Math.sin(now / 140) * hr * 0.4;
+  c.lineWidth = hr * 0.24; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(kx, ky); c.quadraticCurveTo(kx - rt.x * hr * 0.6 * tails, ky - rt.y * hr * 0.6 * tails + fl * 0.5, kx - rt.x * hr * tails - up.x * fl, ky - rt.y * hr * tails - up.y * fl + hr * 0.2);
+  c.moveTo(kx, ky); c.quadraticCurveTo(kx - rt.x * hr * 0.5 * tails, ky - rt.y * hr * 0.5 * tails + hr * 0.3, kx - rt.x * hr * 0.8 * tails + up.x * fl * 0.6, ky - rt.y * hr * 0.8 * tails + hr * 0.55 + fl); c.stroke();
+  c.shadowBlur = 0;
+}
+// the two neon looks, exactly as in the game today
+function drawNeon(c, Q, s, now, blind, ninja) {
+  const { up, rt } = bodyFrame(Q, s), hr = 0.13 * s, sk = skelPath(Q, hr, up);
+  const glow = ninja ? '255,36,56' : '205,236,255', core = ninja ? '#0b0d0f' : '#ffffff';
+  for (const [w, a] of [[0.36, 0.05], [0.22, 0.09], [0.13, 0.2]]) { c.strokeStyle = `rgba(${glow},${a})`; c.lineWidth = w * s; c.lineCap = 'round'; c.lineJoin = 'round'; c.stroke(sk); }
+  if (ninja) { c.strokeStyle = '#ff3346'; c.lineWidth = 0.09 * s; c.stroke(sk); }
+  c.strokeStyle = core; c.lineWidth = 0.058 * s; if (!ninja) { c.shadowColor = `rgb(${glow})`; c.shadowBlur = 0.1 * s; } c.stroke(sk); c.shadowBlur = 0;
+  glowDot(c, Q.Hd.x, Q.Hd.y, hr * 2.1, glow, 0.22);
+  c.fillStyle = ninja ? '#0b0d0f' : '#071113'; c.beginPath(); c.arc(Q.Hd.x, Q.Hd.y, hr, 0, TAU); c.fill();
+  c.strokeStyle = ninja ? '#ff3346' : '#ffffff'; c.lineWidth = 0.042 * s; c.shadowColor = ninja ? '#ff3346' : `rgb(${glow})`; c.shadowBlur = 0.1 * s; c.stroke(); c.shadowBlur = 0;
+  if (blind || ninja) blindBand(c, Q.Hd, hr, rt, up, ninja ? '#ff2e38' : '#ff2d4a', now, ninja ? 1.8 : 1);
+  for (const side of [0, 1]) {
+    const M = mitt(Q, side), gc = { x: M.H.x + M.ux * 0.02 * s, y: M.H.y + M.uy * 0.02 * s };
+    const sd = (Q.S.x - M.H.x) * -M.uy + (Q.S.y - M.H.y) * M.ux > 0 ? 1 : -1, th = { x: gc.x - M.uy * 0.1 * s * sd - M.ux * 0.035 * s, y: gc.y + M.ux * 0.1 * s * sd - M.uy * 0.035 * s };
+    glowDot(c, gc.x, gc.y, 0.34 * s, '255,40,70', 0.42);
+    const mp = new Path2D(); mp.ellipse(gc.x, gc.y, 0.13 * s, 0.108 * s, M.a, 0, TAU); mp.moveTo(th.x + 0.045 * s, th.y); mp.arc(th.x, th.y, 0.045 * s, 0, TAU);
+    const fg = c.createRadialGradient(gc.x - 0.03 * s, gc.y - 0.03 * s, 0, gc.x, gc.y, 0.14 * s);
+    fg.addColorStop(0, ninja ? '#3b1a1f' : '#ffd2d8'); fg.addColorStop(0.45, ninja ? '#15181b' : '#ff2d4a'); fg.addColorStop(1, ninja ? '#0b0d0f' : '#b80f28');
+    c.strokeStyle = ninja ? '#ff3346' : '#ff7a8a'; c.lineWidth = 0.045 * s; c.shadowColor = 'rgb(255,40,70)'; c.shadowBlur = 0.16 * s; c.stroke(mp); c.shadowBlur = 0; c.fillStyle = fg; c.fill(mp);
+  }
+}
+function drawAstro(c, Q, s, now, blind) {
+  const { up, rt, tilt } = bodyFrame(Q, s), hr = 0.165 * s, sk = skelPath(Q, hr * 0.8, up);
+  glowDot(c, Q.S.x, Q.S.y, 1.0 * s, '170,210,255', 0.12);
+  // backpack peeking out behind the shoulders
+  c.save(); c.translate((Q.S.x + Q.N.x) / 2, (Q.S.y + Q.N.y) / 2); c.rotate(tilt); c.fillStyle = '#c9d2d8'; c.strokeStyle = '#7d8a92'; c.lineWidth = 0.02 * s;
+  c.beginPath(); rr(c, -0.21 * s, -0.24 * s, 0.42 * s, 0.46 * s, 0.07 * s); c.fill(); c.stroke(); c.restore();
+  layered(c, sk, [['rgba(150,190,230,.25)', 0.3 * s, 0], ['#7d8a92', 0.16 * s, 0], ['#f4f6f7', 0.125 * s, 0], ['rgba(255,255,255,.9)', 0.03 * s, 0]]);
+  // knee and elbow rings, boots
+  for (const k of ['KL', 'KR', 'EL', 'ER']) { c.strokeStyle = '#ff8a3d'; c.lineWidth = 0.025 * s; c.beginPath(); c.arc(Q[k].x, Q[k].y, 0.065 * s, 0, TAU); c.stroke(); }
+  for (const f of ['FL', 'FR']) { c.fillStyle = '#e8ecee'; c.strokeStyle = '#7d8a92'; c.lineWidth = 0.02 * s; c.beginPath(); c.ellipse(Q[f].x, Q[f].y + 0.02 * s, 0.09 * s, 0.06 * s, 0, 0, TAU); c.fill(); c.stroke(); c.fillStyle = '#7d8a92'; c.fillRect(Q[f].x - 0.09 * s, Q[f].y + 0.055 * s, 0.18 * s, 0.025 * s); }
+  // chest panel with three lights
+  c.save(); c.translate(lerp(Q.S.x, Q.N.x, 0.35), lerp(Q.S.y, Q.N.y, 0.35)); c.rotate(tilt); c.fillStyle = '#dfe5e8'; c.strokeStyle = '#7d8a92'; c.lineWidth = 0.015 * s; c.beginPath(); rr(c, -0.09 * s, -0.06 * s, 0.18 * s, 0.12 * s, 0.02 * s); c.fill(); c.stroke();
+  ['#ff4d5e', '#4db8ff', '#ffd24d'].forEach((col, i) => { c.fillStyle = col; c.shadowColor = col; c.shadowBlur = 0.05 * s * (0.6 + 0.4 * Math.sin(now / 300 + i)); c.beginPath(); c.arc((-0.05 + i * 0.05) * s, 0, 0.02 * s, 0, TAU); c.fill(); }); c.shadowBlur = 0; c.restore();
+  // helmet: black visor while blind, gold the moment it reads you
+  c.save(); c.translate(Q.Hd.x, Q.Hd.y); c.rotate(tilt);
+  c.fillStyle = '#eef2f4'; c.strokeStyle = '#7d8a92'; c.lineWidth = 0.022 * s; c.beginPath(); c.arc(0, 0, hr, 0, TAU); c.fill(); c.stroke();
+  const vg = c.createLinearGradient(-hr, -hr * 0.5, hr, hr * 0.6);
+  if (blind) { vg.addColorStop(0, '#1a2a33'); vg.addColorStop(1, '#05090c'); } else { vg.addColorStop(0, '#fff0b8'); vg.addColorStop(0.45, '#ffc247'); vg.addColorStop(1, '#a8621a'); }
+  c.fillStyle = vg; c.beginPath(); c.ellipse(0, hr * 0.06, hr * 0.74, hr * 0.56, 0, 0, TAU); c.fill();
+  c.strokeStyle = 'rgba(255,255,255,.75)'; c.lineWidth = 0.02 * s; c.lineCap = 'round'; c.beginPath(); c.arc(-hr * 0.1, -hr * 0.02, hr * 0.48, Math.PI * 1.08, Math.PI * 1.38); c.stroke();
+  if (!blind) { c.shadowColor = '#ffc247'; c.shadowBlur = 0.12 * s; c.strokeStyle = 'rgba(255,200,90,.5)'; c.beginPath(); c.ellipse(0, hr * 0.06, hr * 0.74, hr * 0.56, 0, 0, TAU); c.stroke(); c.shadowBlur = 0; }
+  c.restore();
+  // puffy mitts with orange cuffs
+  for (const side of [0, 1]) { const M = mitt(Q, side), gc = { x: M.H.x + M.ux * 0.02 * s, y: M.H.y + M.uy * 0.02 * s };
+    glowDot(c, gc.x, gc.y, 0.3 * s, '255,160,90', 0.25);
+    c.fillStyle = '#f4f6f7'; c.strokeStyle = '#7d8a92'; c.lineWidth = 0.02 * s; c.beginPath(); c.ellipse(gc.x, gc.y, 0.13 * s, 0.11 * s, M.a, 0, TAU); c.fill(); c.stroke();
+    c.strokeStyle = '#ff8a3d'; c.lineWidth = 0.035 * s; c.beginPath(); c.moveTo(M.H.x - M.ux * 0.09 * s - M.uy * 0.08 * s, M.H.y - M.uy * 0.09 * s + M.ux * 0.08 * s); c.lineTo(M.H.x - M.ux * 0.09 * s + M.uy * 0.08 * s, M.H.y - M.uy * 0.09 * s - M.ux * 0.08 * s); c.stroke(); }
+}
+function drawSkel(c, Q, s, now, blind) {
+  const { up, rt, tilt } = bodyFrame(Q, s), hr = 0.13 * s, BONE = '#ece6d2', GL = '125,255,154';
+  glowDot(c, Q.S.x, Q.S.y, 1.0 * s, GL, 0.1);
+  const bone = (a, b, w) => { c.strokeStyle = `rgba(${GL},.22)`; c.lineWidth = w * 3.2; c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke(); c.strokeStyle = BONE; c.lineWidth = w; c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke(); c.fillStyle = BONE; for (const p of [a, b]) { c.beginPath(); c.arc(p.x, p.y, w * 0.85, 0, TAU); c.fill(); } };
+  c.lineCap = 'round';
+  for (const [a, b] of [['hipL', 'KL'], ['KL', 'FL'], ['hipR', 'KR'], ['KR', 'FR'], ['SL', 'EL'], ['EL', 'HL'], ['SR', 'ER'], ['ER', 'HR'], ['SL', 'SR']]) bone(Q[a], Q[b], 0.045 * s);
+  // spine of little vertebrae
+  for (let i = 0; i <= 7; i++) { const t = i / 7, x = lerp(Q.P.x, Q.N.x, t), y = lerp(Q.P.y, Q.N.y, t); c.fillStyle = BONE; c.beginPath(); c.arc(x, y, 0.028 * s, 0, TAU); c.fill(); }
+  // ribs
+  c.strokeStyle = BONE; c.lineWidth = 0.025 * s;
+  for (let k = 0; k < 4; k++) { const t = 0.42 + k * 0.15, cx = lerp(Q.P.x, Q.N.x, t), cy = lerp(Q.P.y, Q.N.y, t), w = (0.17 - k * 0.012) * s;
+    for (const sd of [-1, 1]) { c.beginPath(); c.moveTo(cx, cy); c.quadraticCurveTo(cx + rt.x * w * sd * 1.2 - up.x * 0.02 * s, cy + rt.y * w * sd * 1.2 - up.y * 0.02 * s, cx + rt.x * w * sd - up.x * 0.08 * s, cy + rt.y * w * sd - up.y * 0.08 * s); c.stroke(); } }
+  // pelvis
+  c.lineWidth = 0.035 * s; c.beginPath(); c.moveTo(Q.hipL.x, Q.hipL.y); c.quadraticCurveTo(Q.P.x - up.x * 0.12 * s, Q.P.y - up.y * 0.12 * s, Q.hipR.x, Q.hipR.y); c.stroke();
+  // skull: sockets dark while blind, green once it reads you
+  c.save(); c.translate(Q.Hd.x, Q.Hd.y); c.rotate(tilt);
+  c.shadowColor = `rgb(${GL})`; c.shadowBlur = 0.1 * s; c.fillStyle = BONE; c.beginPath(); c.arc(0, -hr * 0.08, hr, 0, TAU); c.fill(); c.shadowBlur = 0;
+  c.beginPath(); rr(c, -hr * 0.5, hr * 0.55, hr, hr * 0.5, hr * 0.18); c.fill();
+  c.fillStyle = '#0a0f0c'; for (const sx of [-0.38, 0.38]) { c.beginPath(); c.ellipse(sx * hr, -hr * 0.02, hr * 0.26, hr * 0.3, 0, 0, TAU); c.fill(); }
+  c.beginPath(); c.moveTo(0, hr * 0.28); c.lineTo(-hr * 0.1, hr * 0.46); c.lineTo(hr * 0.1, hr * 0.46); c.closePath(); c.fill();
+  c.strokeStyle = '#0a0f0c'; c.lineWidth = 0.012 * s; for (let i = -2; i <= 2; i++) { c.beginPath(); c.moveTo(i * hr * 0.18, hr * 0.6); c.lineTo(i * hr * 0.18, hr * 1.0); c.stroke(); }
+  if (!blind) { c.fillStyle = `rgb(${GL})`; c.shadowColor = `rgb(${GL})`; c.shadowBlur = 0.12 * s; for (const sx of [-0.38, 0.38]) { c.beginPath(); c.arc(sx * hr, 0, hr * 0.11, 0, TAU); c.fill(); } c.shadowBlur = 0; }
+  c.restore();
+  // bony hands inside a soft green reach glow
+  for (const side of [0, 1]) { const M = mitt(Q, side), gc = { x: M.H.x + M.ux * 0.03 * s, y: M.H.y + M.uy * 0.03 * s };
+    glowDot(c, gc.x, gc.y, 0.17 * s, GL, 0.45);
+    c.fillStyle = BONE; c.beginPath(); c.arc(M.H.x, M.H.y, 0.05 * s, 0, TAU); c.fill();
+    c.strokeStyle = BONE; c.lineWidth = 0.022 * s; for (let f = -2; f <= 1; f++) { const a = M.a + f * 0.32 + 0.16; c.beginPath(); c.moveTo(M.H.x, M.H.y); c.lineTo(M.H.x + Math.cos(a) * 0.12 * s, M.H.y + Math.sin(a) * 0.12 * s); c.stroke(); } }
+}
+function flames(c, x, y, size, now, seed, hot) {
+  // a few flame tongues rising from a point; fire rises straight up whatever the body does
+  for (let i = 0; i < 4; i++) {
+    const ph = now / (85 + i * 13) + seed * 7 + i * 1.7, h = size * (0.8 + 0.45 * Math.sin(ph)) * (1 - i * 0.12), w = size * (0.42 - i * 0.05), dx = Math.sin(ph * 0.7 + i) * size * 0.22 + (i - 1.5) * size * 0.16;
+    const g = c.createLinearGradient(x, y, x, y - h); g.addColorStop(0, hot ? 'rgba(255,240,170,.95)' : 'rgba(255,120,40,.6)'); g.addColorStop(0.45, hot ? 'rgba(255,120,30,.85)' : 'rgba(180,50,20,.45)'); g.addColorStop(1, 'rgba(255,60,0,0)');
+    c.fillStyle = g; c.beginPath(); c.moveTo(x + dx - w, y); c.quadraticCurveTo(x + dx - w * 0.6, y - h * 0.6, x + dx + Math.sin(ph) * w * 0.4, y - h); c.quadraticCurveTo(x + dx + w * 0.6, y - h * 0.6, x + dx + w, y); c.closePath(); c.fill();
+  }
+}
+function drawInferno(c, Q, s, now, blind) {
+  const { up } = bodyFrame(Q, s), hr = 0.13 * s, sk = skelPath(Q, hr, up);
+  c.globalCompositeOperation = 'lighter';
+  layered(c, sk, [['rgba(255,70,10,.16)', 0.42 * s, 0], ['rgba(255,90,20,.55)', 0.15 * s, 0], ['#ff7a1f', 0.08 * s, 0.12 * s], ['#ffe08a', 0.032 * s, 0]]);
+  for (const [k, sz, sd] of [['SL', 0.14, 1], ['SR', 0.14, 2], ['S', 0.16, 3], ['KL', 0.1, 4], ['KR', 0.1, 5]]) flames(c, Q[k].x, Q[k].y, sz * s, now, sd, !blind);
+  // head: embers and smoke while blind, a blaze once it reads you
+  if (blind) { glowDot(c, Q.Hd.x, Q.Hd.y, hr * 1.5, '200,50,10', 0.55); c.globalCompositeOperation = 'source-over'; for (let i = 0; i < 3; i++) { const t = ((now / 1400) + i / 3) % 1; c.fillStyle = `rgba(120,120,120,${0.25 * (1 - t)})`; c.beginPath(); c.arc(Q.Hd.x + Math.sin(t * 6 + i) * hr * 0.4, Q.Hd.y - hr * (0.8 + t * 2.2), hr * (0.25 + t * 0.4), 0, TAU); c.fill(); } c.globalCompositeOperation = 'lighter'; }
+  else { glowDot(c, Q.Hd.x, Q.Hd.y, hr * 1.7, '255,160,40', 0.9); flames(c, Q.Hd.x, Q.Hd.y - hr * 0.3, hr * 2.6, now, 9, true); }
+  const hg = c.createRadialGradient(Q.Hd.x, Q.Hd.y, 0, Q.Hd.x, Q.Hd.y, hr); hg.addColorStop(0, blind ? '#ff9a4a' : '#fff6c8'); hg.addColorStop(0.6, blind ? '#c2410f' : '#ff8a24'); hg.addColorStop(1, 'rgba(255,60,0,.2)');
+  c.fillStyle = hg; c.beginPath(); c.arc(Q.Hd.x, Q.Hd.y, hr, 0, TAU); c.fill();
+  // fireball mitts
+  for (const side of [0, 1]) { const M = mitt(Q, side), gc = { x: M.H.x + M.ux * 0.02 * s, y: M.H.y + M.uy * 0.02 * s }, f = 1 + 0.08 * Math.sin(now / 70 + side * 3);
+    glowDot(c, gc.x, gc.y, 0.32 * s, '255,110,20', 0.6);
+    const g = c.createRadialGradient(gc.x, gc.y, 0, gc.x, gc.y, 0.13 * s * f); g.addColorStop(0, '#fff6c8'); g.addColorStop(0.5, '#ffa030'); g.addColorStop(1, 'rgba(255,70,0,.3)'); c.fillStyle = g; c.beginPath(); c.arc(gc.x, gc.y, 0.13 * s * f, 0, TAU); c.fill();
+    flames(c, gc.x, gc.y - 0.04 * s, 0.16 * s, now, 11 + side, true); }
+  c.globalCompositeOperation = 'source-over';
+}
+function drawPhantom(c, Q, s, now, blind, hist) {
+  const { up, rt, tilt } = bodyFrame(Q, s), hr = 0.13 * s;
+  // afterimages: where it was a moment ago
+  hist.forEach((H, i) => { const a = 0.05 + 0.13 * (i / hist.length), sk = skelPath(H, hr, up); c.strokeStyle = `rgba(162,107,255,${a})`; c.lineWidth = 0.09 * s; c.lineCap = 'round'; c.lineJoin = 'round'; c.stroke(sk); });
+  const top = new Path2D(), poly = (p, ...q) => { p.moveTo(q[0].x, q[0].y); for (let i = 1; i < q.length; i++) p.lineTo(q[i].x, q[i].y); };
+  poly(top, Q.P, Q.S, Q.N); poly(top, Q.HL, Q.EL, Q.SL, Q.SR, Q.ER, Q.HR);
+  layered(c, top, [['rgba(162,107,255,.14)', 0.38 * s, 0], ['rgba(162,107,255,.35)', 0.16 * s, 0], ['#d9c8ff', 0.05 * s, 0.12 * s]]);
+  // the legs fade away toward the feet
+  for (const [K, F] of [['KL', 'FL'], ['KR', 'FR']]) { const g = c.createLinearGradient(Q.P.x, Q.P.y, Q[F].x, Q[F].y); g.addColorStop(0, 'rgba(217,200,255,.9)'); g.addColorStop(1, 'rgba(217,200,255,0)'); c.strokeStyle = g; c.lineWidth = 0.05 * s; c.beginPath(); c.moveTo(Q.P.x, Q.P.y); c.lineTo(Q[K].x, Q[K].y); c.lineTo(Q[F].x, Q[F].y); c.stroke(); }
+  // hood
+  c.save(); c.translate(Q.Hd.x, Q.Hd.y); c.rotate(tilt);
+  c.fillStyle = '#2a1650'; c.strokeStyle = '#b48cff'; c.lineWidth = 0.022 * s; c.shadowColor = '#a26bff'; c.shadowBlur = 0.14 * s;
+  c.beginPath(); c.moveTo(0, -hr * 1.55); c.quadraticCurveTo(hr * 1.25, -hr * 0.6, hr * 0.95, hr * 0.95); c.quadraticCurveTo(0, hr * 1.25, -hr * 0.95, hr * 0.95); c.quadraticCurveTo(-hr * 1.25, -hr * 0.6, 0, -hr * 1.55); c.fill(); c.stroke(); c.shadowBlur = 0;
+  c.fillStyle = '#05030a'; c.beginPath(); c.ellipse(0, hr * 0.15, hr * 0.62, hr * 0.68, 0, 0, TAU); c.fill();
+  if (!blind) { c.fillStyle = '#e6d9ff'; c.shadowColor = '#b48cff'; c.shadowBlur = 0.15 * s; for (const sx of [-0.25, 0.25]) { c.beginPath(); c.ellipse(sx * hr, hr * 0.05, hr * 0.09, hr * 0.05, 0, 0, TAU); c.fill(); } c.shadowBlur = 0; glowDot(c, 0, hr * 0.15, hr * 0.7, '180,140,255', 0.35); }
+  c.restore();
+  for (const side of [0, 1]) { const M = mitt(Q, side), gc = { x: M.H.x + M.ux * 0.02 * s, y: M.H.y + M.uy * 0.02 * s };
+    glowDot(c, gc.x, gc.y, 0.32 * s, '162,107,255', 0.5);
+    const g = c.createRadialGradient(gc.x, gc.y, 0, gc.x, gc.y, 0.13 * s); g.addColorStop(0, 'rgba(240,230,255,.95)'); g.addColorStop(0.6, 'rgba(162,107,255,.6)'); g.addColorStop(1, 'rgba(162,107,255,0)'); c.fillStyle = g; c.beginPath(); c.arc(gc.x, gc.y, 0.13 * s, 0, TAU); c.fill();
+    for (let i = 0; i < 3; i++) { const a = now / 300 + i * 2.1 + side; c.fillStyle = 'rgba(230,217,255,.8)'; c.beginPath(); c.arc(gc.x + Math.cos(a) * 0.11 * s, gc.y + Math.sin(a) * 0.11 * s, 0.012 * s, 0, TAU); c.fill(); } }
+}
+const SKIN_DRAW = { ninja: (c, Q, s, n, b) => drawNeon(c, Q, s, n, b, true), classic: (c, Q, s, n, b) => drawNeon(c, Q, s, n, b, false), astro: drawAstro, skel: drawSkel, inferno: drawInferno, phantom: drawPhantom };
+// ---------- balls (looks only: the same size and flight) ----------
+function ballShade(c, r) { const g = c.createRadialGradient(-r * 0.35, -r * 0.4, r * 0.1, 0, 0, r); g.addColorStop(0, 'rgba(255,255,255,.35)'); g.addColorStop(0.5, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(0,0,0,.38)'); c.fillStyle = g; c.beginPath(); c.arc(0, 0, r, 0, TAU); c.fill(); }
+function drawBallSkin(c, id, x, y, r, rot) {
+  c.save(); c.translate(x, y);
+  if (id === 'planet') { c.save(); c.rotate(-0.35); c.strokeStyle = 'rgba(230,205,160,.75)'; c.lineWidth = r * 0.16; c.beginPath(); c.ellipse(0, 0, r * 1.7, r * 0.42, 0, Math.PI, TAU); c.stroke(); c.restore(); }
+  c.save(); c.beginPath(); c.arc(0, 0, r, 0, TAU); c.clip();
+  if (id === 'soccer') { c.fillStyle = '#f2f5ef'; c.fillRect(-r, -r, 2 * r, 2 * r); c.rotate(rot); c.fillStyle = '#0c1a1b'; const pent = (px, py, pr, ro) => { c.beginPath(); for (let k = 0; k < 5; k++) { const a = ro + k * TAU / 5; c.lineTo(px + Math.cos(a) * pr, py + Math.sin(a) * pr); } c.closePath(); c.fill(); }; for (let i = 0; i < 5; i++) { const a = i * TAU / 5 - Math.PI / 2; pent(Math.cos(a) * r * 0.92, Math.sin(a) * r * 0.92, r * 0.3, a + Math.PI); } c.strokeStyle = 'rgba(12,26,27,.35)'; c.lineWidth = r * 0.03; for (let i = 0; i < 5; i++) { const a = i * TAU / 5 - Math.PI / 2; c.beginPath(); c.moveTo(Math.cos(a) * r * 0.3, Math.sin(a) * r * 0.3); c.lineTo(Math.cos(a) * r * 0.66, Math.sin(a) * r * 0.66); c.stroke(); } c.beginPath(); for (let i = 0; i < 5; i++) { const a = i * TAU / 5 - Math.PI / 2; c.lineTo(Math.cos(a) * r * 0.3, Math.sin(a) * r * 0.3); } c.closePath(); c.fill(); }
+  else if (id === 'basket') { c.fillStyle = '#e8762c'; c.fillRect(-r, -r, 2 * r, 2 * r); c.fillStyle = 'rgba(120,40,0,.25)'; for (let i = 0; i < 40; i++) { const a = i * 2.4, d = (i * 37 % 100) / 100 * r; c.beginPath(); c.arc(Math.cos(a) * d, Math.sin(a) * d, r * 0.03, 0, TAU); c.fill(); }
+    c.rotate(rot); c.strokeStyle = '#1a0e08'; c.lineWidth = r * 0.07; c.beginPath(); c.moveTo(-r, 0); c.lineTo(r, 0); c.moveTo(0, -r); c.lineTo(0, r); c.stroke(); c.beginPath(); c.arc(-r * 1.25, 0, r * 0.95, -0.9, 0.9); c.stroke(); c.beginPath(); c.arc(r * 1.25, 0, r * 0.95, Math.PI - 0.9, Math.PI + 0.9); c.stroke(); }
+  else if (id === 'base') { c.fillStyle = '#f4f1ea'; c.fillRect(-r, -r, 2 * r, 2 * r); c.rotate(rot); c.strokeStyle = '#d42a2a'; c.lineWidth = r * 0.05;
+    for (const sd of [-1, 1]) { c.beginPath(); c.arc(sd * r * 1.18, 0, r * 0.82, sd < 0 ? -1.05 : Math.PI - 1.05, sd < 0 ? 1.05 : Math.PI + 1.05); c.stroke(); for (let k = -4; k <= 4; k++) { const a = (sd < 0 ? 0 : Math.PI) + k * 0.24, cx = sd * r * 1.18 + Math.cos(a) * r * 0.82, cy = Math.sin(a) * r * 0.82, nx = Math.cos(a), ny = Math.sin(a); c.beginPath(); c.moveTo(cx - nx * r * 0.09 - ny * r * 0.05, cy - ny * r * 0.09 + nx * r * 0.05); c.lineTo(cx - nx * r * 0.09 + ny * r * 0.05, cy - ny * r * 0.09 - nx * r * 0.05); c.stroke(); } } }
+  else if (id === 'tennis') { const g = c.createRadialGradient(0, 0, 0, 0, 0, r); g.addColorStop(0, '#e3f55a'); g.addColorStop(1, '#b6d11f'); c.fillStyle = g; c.fillRect(-r, -r, 2 * r, 2 * r); c.rotate(rot); c.strokeStyle = '#f7fbe6'; c.lineWidth = r * 0.1; c.beginPath(); c.arc(-r * 1.15, 0, r * 0.85, -1.2, 1.2); c.stroke(); c.beginPath(); c.arc(r * 1.15, 0, r * 0.85, Math.PI - 1.2, Math.PI + 1.2); c.stroke(); }
+  else if (id === 'beach') { c.rotate(rot); const cols = ['#ff4d5e', '#f7f7f2', '#3fa9ff', '#ffd24d', '#f7f7f2', '#4ddf8a']; cols.forEach((col, i) => { c.fillStyle = col; c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, r * 1.02, i * TAU / 6, (i + 1) * TAU / 6); c.closePath(); c.fill(); }); c.fillStyle = '#ffffff'; c.beginPath(); c.arc(0, 0, r * 0.22, 0, TAU); c.fill(); }
+  else if (id === 'planet') { const bands = ['#e9c58f', '#c98f55', '#f1dcb4', '#b2733f', '#e3b77c', '#f5e6c8', '#c4864c']; const off = (rot * r * 0.35) % (r * 2 / bands.length * bands.length);
+    for (let i = -bands.length; i < bands.length * 2; i++) { c.fillStyle = bands[((i % bands.length) + bands.length) % bands.length]; c.save(); c.rotate(-0.35); c.fillRect(-r * 1.5, -r + i * (r * 2 / bands.length) - (off % (r * 2 / bands.length)), r * 3, r * 2 / bands.length + 1); c.restore(); }
+    c.fillStyle = 'rgba(160,80,40,.5)'; c.beginPath(); c.ellipse(r * 0.3, r * 0.25, r * 0.2, r * 0.11, -0.35, 0, TAU); c.fill(); }
+  c.restore();
+  ballShade(c, r);
+  if (id === 'planet') { c.save(); c.rotate(-0.35); c.strokeStyle = 'rgba(240,220,180,.9)'; c.lineWidth = r * 0.16; c.beginPath(); c.ellipse(0, 0, r * 1.7, r * 0.42, 0, 0, Math.PI); c.stroke(); c.restore(); }
+  c.restore();
+}
+
+
+// ---------- how the Goalie looks in the game (drawing only: the physics joints and the brains are untouched) ----------
+const KIT_GLOW = { ninja: '255,36,56', classic: '205,236,255', astro: '170,210,255', skel: '125,255,154', inferno: '255,110,20', phantom: '162,107,255' };
 function drawBody(pose, now, blind) {
-  const ninja = curKit() === 'ninja', K = ninja ? NEON.ninja : NEON.classic;
-  if (ninja) blind = true;
+  let kit = curKit(); if (!SKIN_DRAW[kit]) kit = 'classic';
   const s = geo.gw / GW_M, m = p => g2s(p[0] / GW_M, p[1] / GH_M), P = pose.pts, Q = {};
   for (const k in P) Q[k] = m(P[k]);
-  const W = v => Math.max(1, v * s);
-  // a soft glow on the grass under it, and its shadow
+  const glow = KIT_GLOW[kit];
+  // its shadow, and a soft glow on the grass under it
   const sp = m([pose.x, 0]), sw0 = s * (0.42 + Math.abs(Math.sin(pose.th)) * 0.55);
   g.fillStyle = rgba(C.night, 0.5); g.beginPath(); g.ellipse(sp.x, geo.gyb + 2, sw0, 4.5, 0, 0, 7); g.fill();
-  const gg = g.createRadialGradient(sp.x, geo.gyb, 0, sp.x, geo.gyb, sw0 * 1.6); gg.addColorStop(0, `rgba(${K.glow},0.16)`); gg.addColorStop(1, `rgba(${K.glow},0)`);
+  const gg = g.createRadialGradient(sp.x, geo.gyb, 0, sp.x, geo.gyb, sw0 * 1.6); gg.addColorStop(0, `rgba(${glow},0.16)`); gg.addColorStop(1, `rgba(${glow},0)`);
   g.fillStyle = gg; g.beginPath(); g.ellipse(sp.x, geo.gyb, sw0 * 1.6, 9, 0, 0, 7); g.fill();
   g.save(); g.beginPath(); g.rect(geo.gx0, geo.gyt, geo.gw, geo.gh + 12); g.clip();
-  const up = { x: pose.u[0], y: -pose.u[1] }, rt = { x: -up.y, y: up.x }, hd = Q.Hd, hr = 0.13 * s;
-  // the skeleton: legs from the pelvis, the spine to the neck, and the arms through the shoulders, as one line each
-  const sk = new Path2D(), poly = (...q) => { sk.moveTo(q[0].x, q[0].y); for (let i = 1; i < q.length; i++) sk.lineTo(q[i].x, q[i].y); };
-  const neckTop = { x: hd.x - up.x * hr, y: hd.y - up.y * hr };
-  poly(Q.FL, Q.KL, Q.P, Q.KR, Q.FR); poly(Q.P, Q.S, Q.N, neckTop); poly(Q.HL, Q.EL, Q.SL, Q.SR, Q.ER, Q.HR);
-  g.lineCap = 'round'; g.lineJoin = 'round';
-  for (const [w, al] of [[0.36, 0.05], [0.22, 0.09], [0.13, 0.2]]) { g.strokeStyle = `rgba(${K.glow},${al})`; g.lineWidth = W(w); g.stroke(sk); }
-  if (K.rim) { g.strokeStyle = K.rim; g.lineWidth = W(0.09); g.stroke(sk); }
-  g.strokeStyle = K.core; g.lineWidth = W(0.058); if (!K.rim) { g.shadowColor = `rgb(${K.glow})`; g.shadowBlur = W(0.1); } g.stroke(sk); g.shadowBlur = 0;
-  // the head: a glowing ring
-  const hg = g.createRadialGradient(hd.x, hd.y, hr * 0.8, hd.x, hd.y, hr * 2.1); hg.addColorStop(0, `rgba(${K.glow},0.22)`); hg.addColorStop(1, `rgba(${K.glow},0)`);
-  g.fillStyle = hg; g.beginPath(); g.arc(hd.x, hd.y, hr * 2.1, 0, 7); g.fill();
-  g.fillStyle = K.head; g.beginPath(); g.arc(hd.x, hd.y, hr, 0, 7); g.fill();
-  g.strokeStyle = K.rim || K.core; g.lineWidth = W(0.042); g.shadowColor = K.rim || `rgb(${K.glow})`; g.shadowBlur = W(0.1); g.stroke(); g.shadowBlur = 0;
-  // the blindfold: a red band over its eyes until it reads you (the ninja never takes it off)
-  if (blind) {
-    const ey = { x: hd.x - up.x * hr * 0.12, y: hd.y - up.y * hr * 0.12 }, bw = hr * 0.5;
-    g.strokeStyle = K.band; g.lineWidth = bw; g.lineCap = 'butt'; g.shadowColor = K.band; g.shadowBlur = W(0.12);
-    g.beginPath(); g.moveTo(ey.x - rt.x * hr * 1.08, ey.y - rt.y * hr * 1.08); g.lineTo(ey.x + rt.x * hr * 1.08, ey.y + rt.y * hr * 1.08); g.stroke();
-    const kx = ey.x - rt.x * hr * 1.08, ky = ey.y - rt.y * hr * 1.08, fl = Math.sin(now / 140) * hr * 0.4, tl = K.tails;
-    g.lineWidth = hr * 0.24; g.lineCap = 'round';
-    g.beginPath(); g.moveTo(kx, ky); g.quadraticCurveTo(kx - rt.x * hr * 0.6 * tl, ky - rt.y * hr * 0.6 * tl + fl * 0.5, kx - rt.x * hr * tl - up.x * fl, ky - rt.y * hr * tl - up.y * fl + hr * 0.2);
-    g.moveTo(kx, ky); g.quadraticCurveTo(kx - rt.x * hr * 0.5 * tl, ky - rt.y * hr * 0.5 * tl + hr * 0.3, kx - rt.x * hr * 0.8 * tl + up.x * fl * 0.6, ky - rt.y * hr * 0.8 * tl + hr * 0.55 + fl); g.stroke();
-    g.shadowBlur = 0;
-  }
-  // the mitts: glowing red, the size of the real gloves, a thumb toward the body
-  for (const [E0, H0] of [[Q.EL, Q.HL], [Q.ER, Q.HR]]) {
-    const dx = H0.x - E0.x, dy = H0.y - E0.y, dl = Math.hypot(dx, dy) || 1, ux = dx / dl, uy = dy / dl, gc = { x: H0.x + ux * 0.02 * s, y: H0.y + uy * 0.02 * s }, ga = Math.atan2(uy, ux);
-    const side = (Q.S.x - H0.x) * -uy + (Q.S.y - H0.y) * ux > 0 ? 1 : -1, th = { x: gc.x - uy * 0.1 * s * side - ux * 0.035 * s, y: gc.y + ux * 0.1 * s * side - uy * 0.035 * s };
-    const halo = g.createRadialGradient(gc.x, gc.y, 0, gc.x, gc.y, 0.34 * s); halo.addColorStop(0, `rgba(${K.mittGlow},0.42)`); halo.addColorStop(1, `rgba(${K.mittGlow},0)`);
-    g.fillStyle = halo; g.beginPath(); g.arc(gc.x, gc.y, 0.34 * s, 0, 7); g.fill();
-    const mp = new Path2D(); mp.ellipse(gc.x, gc.y, 0.13 * s, 0.108 * s, ga, 0, 7); mp.moveTo(th.x + 0.045 * s, th.y); mp.arc(th.x, th.y, 0.045 * s, 0, 7);
-    const fillG = g.createRadialGradient(gc.x - 0.03 * s, gc.y - 0.03 * s, 0, gc.x, gc.y, 0.14 * s); fillG.addColorStop(0, K.mittHot); fillG.addColorStop(0.45, K.mitt); fillG.addColorStop(1, K.mittDeep);
-    // outline first, then the fill on top, so the thumb and the mitt read as one shape
-    g.strokeStyle = K.mittEdge; g.lineWidth = W(0.045); g.shadowColor = `rgb(${K.mittGlow})`; g.shadowBlur = W(0.16); g.stroke(mp); g.shadowBlur = 0;
-    g.fillStyle = fillG; g.fill(mp, 'nonzero');
-  }
-  g.lineCap = 'butt'; g.lineJoin = 'miter';
+  // the phantom leaves afterimages of where it just was
+  if (kit === 'phantom') { G.phHist = G.phHist || []; G.phHist.push(Q); if (G.phHist.length > 7) G.phHist.shift(); } else G.phHist = null;
+  SKIN_DRAW[kit](g, Q, s, now, blind, kit === 'phantom' ? G.phHist.slice(0, -1) : []);
+  g.lineCap = 'butt'; g.lineJoin = 'miter'; g.shadowBlur = 0; g.globalCompositeOperation = 'source-over';
   g.restore();
 }
-function drawBall(x, y, r, rot, alpha = 1) {
-  g.save(); g.globalAlpha = alpha; g.translate(x, y); g.rotate(rot);
+function drawBall(x, y, r, rot, alpha = 1, id) {
+  const bid = id || curBall();
+  if (bid !== 'soccer' && BALLS.some(b => b.id === bid)) { g.save(); g.globalAlpha *= alpha; drawBallSkin(g, bid, x, y, r, rot); g.restore(); return; }
+  g.save(); g.globalAlpha *= alpha; g.translate(x, y); g.rotate(rot);
   const rg = g.createRadialGradient(-r * 0.3, -r * 0.35, r * 0.1, 0, 0, r); rg.addColorStop(0, C.chalk); rg.addColorStop(1, C.chalk2);
   g.fillStyle = rg; g.beginPath(); g.arc(0, 0, r, 0, 7); g.fill();
   g.clip(); g.fillStyle = C.night;
@@ -3878,6 +4139,37 @@ function drawLiveBands(now) {
   drawTrail(sw.pts, 1, null, true);
 }
 // a save: a burst where the glove met the ball
+// ---------- the goal moment: the ball keeps going into the black behind the net, as if it were deep space ----------
+const SPACE_STARS = Array.from({ length: 90 }, (_, i) => ({ x: (i * 0.618034) % 1, y: (i * 0.3819 + i * i * 0.0007) % 1, r: 0.4 + ((i * 7) % 10) / 10 * 1.1, ph: i * 1.7 }));
+const SPACE_MS = 1800;
+function spaceStart(key, t0, gx, gy, r0) { if (G.space && G.space.key === key) return; G.space = { key, t0, gx: clamp(gx, 0.03, 0.97), gy: clamp(gy, 0.04, 0.96), r0, vx: lerp(gx, 0.5, 0.55) + (gx < 0.5 ? 0.04 : -0.04), vy: lerp(gy, 0.6, 0.55) }; }
+// where the ball is on its way out: null once it has gone
+function spaceBall(now) {
+  const S0 = G.space; if (!S0) return null;
+  const q = clamp((now - S0.t0) / SPACE_MS, 0, 1), e = 1 - Math.pow(1 - q, 1.6), A = g2s(S0.gx, S0.gy), V = g2s(S0.vx, S0.vy), lift = geo.gh * 0.05;
+  const at = ee => ({ x: lerp(A.x, V.x, ee), y: lerp(A.y, V.y, ee) - Math.sin(ee * Math.PI) * lift });
+  const p = at(e); return { ...p, r: S0.r0 * (1 - e), a: 1 - Math.pow(q, 3), q, at, V };
+}
+function drawSpace(now) {
+  const S0 = G.space; if (!S0) return;
+  const el = now - S0.t0; if (el > 2600) { G.space = null; return; } if (el < 0) return;
+  const starA = clamp(el / 400, 0, 1) * clamp(1 - (el - 1900) / 700, 0, 1), V = g2s(S0.vx, S0.vy), { gx0, gyt, gw, gh } = geo;
+  g.save(); g.beginPath(); g.rect(gx0, gyt, gw, gh); g.clip();
+  const neb = (x, y, r, rgb, a) => { const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(${rgb},${a})`); gr.addColorStop(1, `rgba(${rgb},0)`); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); };
+  neb(V.x, V.y, gw * 0.42, '90,70,200', 0.28 * starA); neb(V.x + gw * 0.12, V.y - gh * 0.15, gw * 0.25, '60,150,220', 0.18 * starA);
+  for (const st of SPACE_STARS) { const tw = 0.5 + 0.5 * Math.sin(now / 260 + st.ph); g.fillStyle = `rgba(235,242,255,${starA * (0.35 + 0.65 * tw)})`; g.beginPath(); g.arc(gx0 + st.x * gw, gyt + st.y * gh, st.r * Math.max(0.8, gw / 420), 0, 7); g.fill(); }
+  g.restore();
+}
+// the ball itself on its way out, with a thin sparkle trail and a last twinkle
+function drawSpaceBall(now, rot) {
+  const B = spaceBall(now); if (!B) return;
+  const { gx0, gyt, gw, gh } = geo, R0 = G.space.r0;
+  g.save(); g.beginPath(); g.rect(gx0, gyt, gw, gh); g.clip();
+  for (let k = 1; k <= 14; k++) { const qq = clamp(B.q - k * 0.025, 0, 1), p = B.at(1 - Math.pow(1 - qq, 1.6)); g.fillStyle = `rgba(210,230,255,${0.85 * (1 - k / 14) * B.a})`; g.beginPath(); g.arc(p.x + Math.sin(k * 3.1) * 3, p.y + Math.cos(k * 2.3) * 3, Math.max(1, R0 * 0.16 * (1 - k / 14)), 0, 7); g.fill(); }
+  if (B.r > 0.4) { const gr = g.createRadialGradient(B.x, B.y, 0, B.x, B.y, B.r * 2.4); gr.addColorStop(0, `rgba(200,225,255,${0.35 * B.a})`); gr.addColorStop(1, 'rgba(200,225,255,0)'); g.fillStyle = gr; g.beginPath(); g.arc(B.x, B.y, B.r * 2.4, 0, 7); g.fill(); drawBall(B.x, B.y, B.r, rot, B.a); }
+  if (B.q > 0.9) { const f = Math.sin(clamp((B.q - 0.9) / 0.1, 0, 1) * Math.PI), R = R0 * 1.4 * f; g.strokeStyle = `rgba(235,245,255,${f})`; g.lineWidth = 1.4; g.beginPath(); g.moveTo(B.V.x - R, B.V.y); g.lineTo(B.V.x + R, B.V.y); g.moveTo(B.V.x, B.V.y - R); g.lineTo(B.V.x, B.V.y + R); g.stroke(); }
+  g.restore();
+}
 function drawFlash(now) {
   const F = G.flash; if (!F) return; const t = (now - F.t0) / 450; if (t >= 1) { G.flash = null; return; }
   const p = g2s(F.x, F.y), r = 8 + 44 * ease(t);
@@ -3924,7 +4216,7 @@ function demoFrame(now) {
     if (D.end) {
       const k = Math.min(1, (now - D.end) / 600), kk = ease(k), saved = D.gap <= 0;
       if (saved) { const side = Math.sign(D.ev.tx * GW_M - D.R.s.X[0]) || 1; out.ball = { x: E.x + side * geo.gw * 0.3 * kk, y: E.y + (by0 - E.y) * 0.4 * kk - Math.sin(k * Math.PI) * 30, r: r0 * lerp(0.42, 0.7, kk), rot: el * 25, a: 1 }; }
-      else out.ball = { x: E.x, y: lerp(E.y, geo.gyb - geo.gh * 0.12 - r0 * 0.4, kk * kk), r: r0 * 0.4, rot: el * 25, a: 1 };
+      else { spaceStart('demo' + D.t0, D.end, D.ev.tx, D.ev.ty, r0 * 0.42); out.ball = { x: E.x, y: E.y, r: r0 * 0.42, rot: el * 25, a: 0 }; out.behind = true; }
       out.ball.a = clamp(1 - (now - D.end - 1100) / 500, 0, 1); out.shadow = null;
       out.cap = D.cap + (saved ? ' · Saved' : ' · Goal');
       if (now - D.end > 1900) { DEMO.cur = null; DEMO.next = now + 1300; }
@@ -4023,8 +4315,9 @@ function frameBody(now) {
   if (G.shake) { const t = (now - G.shake) / 320; if (t < 1) { const a = 7 * (1 - t) * (1 - t); g.save(); g.translate((Math.random() - 0.5) * 2 * a, (Math.random() - 0.5) * 2 * a); shook = true; } else G.shake = 0; }
   drawPitch(now);
   drawGoal(now, false);
+  drawSpace(now);
   const sh = G.shot;
-  if (G.state === 'result' && sh) drawHeat(sh.pred, { x: sh.gx, y: sh.gy }, sh.peak, clamp((now - sh.t0 - sh.T) / 250, 0, 1));
+  if (G.state === 'result' && sh) drawHeat(sh.pred, sh.outcome === 'saved' ? { x: sh.gx, y: sh.gy } : null, sh.peak, clamp((now - sh.t0 - sh.T) / 250, 0, 1));
   // the Goalie's body: standing ready, or committed to its dive with only the hands still moving
   if (G.dive) diveTick();
   // home screen replays (your Goalie only, while the menu is up)
@@ -4043,7 +4336,7 @@ function frameBody(now) {
     if (e <= sh.T) shadowAt = [lerp(S0.x, E.x, q), lerp(sh.sy + geo.r0 * 0.75, geo.gyb, q)];
     else {
       const k = Math.min(1, (e - sh.T) / 600), kk = ease(k), dirx = E.x - Cp.x, diry = E.y - Cp.y, dl = Math.hypot(dirx, diry) || 1;
-      if (sh.outcome === 'goal') { bx = E.x + dirx / dl * 6 * kk; by = lerp(E.y, geo.gyb - geo.gh * 0.12 - br, kk * kk); br = geo.r0 * lerp(0.42, 0.36, kk); rot = sh.T / 40 + k * 3; }
+      if (sh.outcome === 'goal') { spaceStart(sh.t0, sh.t0 + sh.T, sh.gx, sh.gy, geo.r0 * 0.42); rot = sh.T / 40 + k * 3; ba = 0; }
       else if (sh.outcome === 'wide' || sh.outcome === 'over') { bx = E.x + dirx / dl * 120 * k; by = E.y + diry / dl * 120 * k; br = geo.r0 * lerp(0.42, 0.3, k); ba = 1 - k; }
       else { const side = Math.sign(sh.gx * GW_M - pose.x) || 1; bx = E.x + side * geo.gw * 0.35 * kk; by = E.y + (geo.ballY - E.y) * 0.55 * kk - Math.sin(k * Math.PI) * 40; br = geo.r0 * lerp(0.42, 0.75, kk); rot = sh.T / 40 - k * 4; }
     }
@@ -4052,8 +4345,8 @@ function frameBody(now) {
   // your opponent's swipe being drawn, before their ball flies
   if (G.rep && !G.shot) { const el = now - G.rep.t0, pts = G.rep.trace.filter(p => p.t <= el); if (pts.length) drawTrail(pts, 1, '#6fd3ff'); }
   if (sh) drawReplay(sh, G.state === 'result' ? 0.9 : 0.5);
-  const ballBehind = sh && sh.outcome === 'goal' && now - sh.t0 > sh.T;
-  if (ballBehind) { drawBall(bx, by, br, rot, ba); drawBody(pose, now, blind); drawGoal(now, true); }
+  const ballBehind = (sh && sh.outcome === 'goal' && now - sh.t0 > sh.T) || (demo && demo.behind);
+  if (ballBehind) { if (ba > 0) drawBall(bx, by, br, rot, ba); drawSpaceBall(now, rot); drawBody(pose, now, blind); drawGoal(now, true); }
   else {
     drawBody(pose, now, blind); drawGoal(now, true);
     if (shadowAt) shadow(shadowAt[0], shadowAt[1], br, 0.38);
@@ -4095,6 +4388,7 @@ function frameBody(now) {
   if (!G.saveAt) G.saveAt = now; else if (now - G.saveAt > 60000) { G.saveAt = now; persist(); }
   if (!G.memAt) G.memAt = now; else if (now - G.memAt > 15000) { G.memAt = now; memSave(); }
   if (!$('#brain').hidden && now - G.b2DrawAt > 1000) { G.b2DrawAt = now; drawB2(); drawReach(); }
+  drawStore(now);
 }
 
 function start() {
@@ -4115,7 +4409,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.04-0046';
+  var VERSION = '2026.11.04-0450';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess v' + (window.APP_VERSION || '1.00') + ' · build ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
