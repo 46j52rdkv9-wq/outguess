@@ -2720,12 +2720,11 @@ function hideMenu() { app.classList.remove('menu-on'); $('#menu').hidden = true;
 const goalieIQ = br => Math.round((br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total + (br === MY ? oppShots() : 0))) / 15);
 const MENU = { res: null, count: null };
 // ---------- version and what changed (each update goes up by 0.01) ----------
-const APP_VERSION = '1.08';
+const APP_VERSION = '1.09';
 const WHATS_NEW = [
+  'Goals fly off into space in the same direction they went in',
   'Tokens: earn them with trick shots, wins and three daily challenges',
-  'The Ninja is everyone\'s Goalie now, plus 4 new Goalies and 5 new balls in the Store',
-  'Coins are just for the Shot Trainer. If you bought the Ninja, your 5 coins are back',
-  'Goals now fly off into deep space behind the net',
+  'New Goalies and balls in the Store. The Ninja is everyone\'s Goalie now',
 ];
 window.APP_VERSION = APP_VERSION;
 function showWhatsNew() {
@@ -4142,18 +4141,32 @@ function drawLiveBands(now) {
 // ---------- the goal moment: the ball keeps going into the black behind the net, as if it were deep space ----------
 const SPACE_STARS = Array.from({ length: 90 }, (_, i) => ({ x: (i * 0.618034) % 1, y: (i * 0.3819 + i * i * 0.0007) % 1, r: 0.4 + ((i * 7) % 10) / 10 * 1.1, ph: i * 1.7 }));
 const SPACE_MS = 1800;
-function spaceStart(key, t0, gx, gy, r0) { if (G.space && G.space.key === key) return; G.space = { key, t0, gx: clamp(gx, 0.03, 0.97), gy: clamp(gy, 0.04, 0.96), r0, vx: lerp(gx, 0.5, 0.55) + (gx < 0.5 ? 0.04 : -0.04), vy: lerp(gy, 0.6, 0.55) }; }
-// where the ball is on its way out: null once it has gone
+// the ball carries on the way it was going when it crossed the line: same direction, same speed at first,
+// slowing and shrinking as it falls away into the distance. It stays inside the net's black.
+function spaceStart(key, t0, gx, gy, r0, dir) {
+  if (G.space && G.space.key === key) return;
+  gx = clamp(gx, 0.05, 0.95); gy = clamp(gy, 0.06, 0.94);
+  const A = g2s(gx, gy), l = dir ? Math.hypot(dir.x, dir.y) : 0, ux = l ? dir.x / l : 0, uy = l ? dir.y / l : -1, v0 = dir && dir.v ? dir.v : 0.5;
+  // how far it can go before the edge of the net
+  const m = r0 * 1.6, x0 = geo.gx0 + m, x1 = geo.gx0 + geo.gw - m, y0 = geo.gyt + m, y1 = geo.gyb - m;
+  let room = Infinity;
+  if (ux > 1e-6) room = Math.min(room, (x1 - A.x) / ux); if (ux < -1e-6) room = Math.min(room, (x0 - A.x) / ux);
+  if (uy > 1e-6) room = Math.min(room, (y1 - A.y) / uy); if (uy < -1e-6) room = Math.min(room, (y0 - A.y) / uy);
+  // it keeps its speed while there is room; heading for a post, it travels a little way toward it and fades out there
+  const L = Math.max(0, Math.min(v0 * SPACE_MS / 2.2, geo.gw * 0.45, Math.max(room, geo.gw * 0.08)));
+  G.space = { key, t0, gx, gy, r0, ux, uy, L, vx: (A.x + ux * L - geo.gx0) / geo.gw, vy: (geo.gyb - (A.y + uy * L)) / geo.gh };
+}
+// where the ball is on its way out
 function spaceBall(now) {
   const S0 = G.space; if (!S0) return null;
-  const q = clamp((now - S0.t0) / SPACE_MS, 0, 1), e = 1 - Math.pow(1 - q, 1.6), A = g2s(S0.gx, S0.gy), V = g2s(S0.vx, S0.vy), lift = geo.gh * 0.05;
-  const at = ee => ({ x: lerp(A.x, V.x, ee), y: lerp(A.y, V.y, ee) - Math.sin(ee * Math.PI) * lift });
-  const p = at(e); return { ...p, r: S0.r0 * (1 - e), a: 1 - Math.pow(q, 3), q, at, V };
+  const q = clamp((now - S0.t0) / SPACE_MS, 0, 1), e = 1 - Math.pow(1 - q, 2.2), A = g2s(S0.gx, S0.gy), V = g2s(S0.vx, S0.vy);
+  const at = ee => ({ x: A.x + S0.ux * S0.L * ee, y: A.y + S0.uy * S0.L * ee });
+  const p = at(e); return { ...p, r: S0.r0 * (1 - e), a: 1 - Math.pow(q, 3), q, at: qq => at(qq), V };
 }
 function drawSpace(now) {
   const S0 = G.space; if (!S0) return;
   const el = now - S0.t0; if (el > 2600) { G.space = null; return; } if (el < 0) return;
-  const starA = clamp(el / 400, 0, 1) * clamp(1 - (el - 1900) / 700, 0, 1), V = g2s(S0.vx, S0.vy), { gx0, gyt, gw, gh } = geo;
+  const starA = clamp(el / 400, 0, 1) * clamp(1 - (el - 1900) / 700, 0, 1), V = g2s(clamp(S0.vx, 0.15, 0.85), clamp(S0.vy, 0.2, 0.8)), { gx0, gyt, gw, gh } = geo;
   g.save(); g.beginPath(); g.rect(gx0, gyt, gw, gh); g.clip();
   const neb = (x, y, r, rgb, a) => { const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(${rgb},${a})`); gr.addColorStop(1, `rgba(${rgb},0)`); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); };
   neb(V.x, V.y, gw * 0.42, '90,70,200', 0.28 * starA); neb(V.x + gw * 0.12, V.y - gh * 0.15, gw * 0.25, '60,150,220', 0.18 * starA);
@@ -4165,7 +4178,7 @@ function drawSpaceBall(now, rot) {
   const B = spaceBall(now); if (!B) return;
   const { gx0, gyt, gw, gh } = geo, R0 = G.space.r0;
   g.save(); g.beginPath(); g.rect(gx0, gyt, gw, gh); g.clip();
-  for (let k = 1; k <= 14; k++) { const qq = clamp(B.q - k * 0.025, 0, 1), p = B.at(1 - Math.pow(1 - qq, 1.6)); g.fillStyle = `rgba(210,230,255,${0.85 * (1 - k / 14) * B.a})`; g.beginPath(); g.arc(p.x + Math.sin(k * 3.1) * 3, p.y + Math.cos(k * 2.3) * 3, Math.max(1, R0 * 0.16 * (1 - k / 14)), 0, 7); g.fill(); }
+  for (let k = 1; k <= 14; k++) { const qq = clamp(B.q - k * 0.025, 0, 1), p = B.at(1 - Math.pow(1 - qq, 2.2)); g.fillStyle = `rgba(210,230,255,${0.85 * (1 - k / 14) * B.a})`; g.beginPath(); g.arc(p.x + Math.sin(k * 3.1) * 3, p.y + Math.cos(k * 2.3) * 3, Math.max(1, R0 * 0.16 * (1 - k / 14)), 0, 7); g.fill(); }
   if (B.r > 0.4) { const gr = g.createRadialGradient(B.x, B.y, 0, B.x, B.y, B.r * 2.4); gr.addColorStop(0, `rgba(200,225,255,${0.35 * B.a})`); gr.addColorStop(1, 'rgba(200,225,255,0)'); g.fillStyle = gr; g.beginPath(); g.arc(B.x, B.y, B.r * 2.4, 0, 7); g.fill(); drawBall(B.x, B.y, B.r, rot, B.a); }
   if (B.q > 0.9) { const f = Math.sin(clamp((B.q - 0.9) / 0.1, 0, 1) * Math.PI), R = R0 * 1.4 * f; g.strokeStyle = `rgba(235,245,255,${f})`; g.lineWidth = 1.4; g.beginPath(); g.moveTo(B.V.x - R, B.V.y); g.lineTo(B.V.x + R, B.V.y); g.moveTo(B.V.x, B.V.y - R); g.lineTo(B.V.x, B.V.y + R); g.stroke(); }
   g.restore();
@@ -4216,7 +4229,7 @@ function demoFrame(now) {
     if (D.end) {
       const k = Math.min(1, (now - D.end) / 600), kk = ease(k), saved = D.gap <= 0;
       if (saved) { const side = Math.sign(D.ev.tx * GW_M - D.R.s.X[0]) || 1; out.ball = { x: E.x + side * geo.gw * 0.3 * kk, y: E.y + (by0 - E.y) * 0.4 * kk - Math.sin(k * Math.PI) * 30, r: r0 * lerp(0.42, 0.7, kk), rot: el * 25, a: 1 }; }
-      else { spaceStart('demo' + D.t0, D.end, D.ev.tx, D.ev.ty, r0 * 0.42); out.ball = { x: E.x, y: E.y, r: r0 * 0.42, rot: el * 25, a: 0 }; out.behind = true; }
+      else { { const fr = clamp((geo.gyb - E.y) / Math.max(1, S0.y - E.y), 0.1, 1), vx = E.x - Cp.x, vy = (E.y - Cp.y) * fr; spaceStart('demo' + D.t0, D.end, D.ev.tx, D.ev.ty, r0 * 0.42, { x: vx, y: vy, v: 2 * Math.hypot(vx, vy) / (fl * 1000) }); } out.ball = { x: E.x, y: E.y, r: r0 * 0.42, rot: el * 25, a: 0 }; out.behind = true; }
       out.ball.a = clamp(1 - (now - D.end - 1100) / 500, 0, 1); out.shadow = null;
       out.cap = D.cap + (saved ? ' · Saved' : ' · Goal');
       if (now - D.end > 1900) { DEMO.cur = null; DEMO.next = now + 1300; }
@@ -4336,7 +4349,7 @@ function frameBody(now) {
     if (e <= sh.T) shadowAt = [lerp(S0.x, E.x, q), lerp(sh.sy + geo.r0 * 0.75, geo.gyb, q)];
     else {
       const k = Math.min(1, (e - sh.T) / 600), kk = ease(k), dirx = E.x - Cp.x, diry = E.y - Cp.y, dl = Math.hypot(dirx, diry) || 1;
-      if (sh.outcome === 'goal') { spaceStart(sh.t0, sh.t0 + sh.T, sh.gx, sh.gy, geo.r0 * 0.42); rot = sh.T / 40 + k * 3; ba = 0; }
+      if (sh.outcome === 'goal') { { const fr = clamp((geo.gyb - E.y) / Math.max(1, sh.sy - E.y), 0.1, 1), vx = dirx, vy = diry * fr; spaceStart(sh.t0, sh.t0 + sh.T, sh.gx, sh.gy, geo.r0 * 0.42, { x: vx, y: vy, v: 2 * Math.hypot(vx, vy) / sh.T }); } rot = sh.T / 40 + k * 3; ba = 0; }
       else if (sh.outcome === 'wide' || sh.outcome === 'over') { bx = E.x + dirx / dl * 120 * k; by = E.y + diry / dl * 120 * k; br = geo.r0 * lerp(0.42, 0.3, k); ba = 1 - k; }
       else { const side = Math.sign(sh.gx * GW_M - pose.x) || 1; bx = E.x + side * geo.gw * 0.35 * kk; by = E.y + (geo.ballY - E.y) * 0.55 * kk - Math.sin(k * Math.PI) * 40; br = geo.r0 * lerp(0.42, 0.75, kk); rot = sh.T / 40 - k * 4; }
     }
@@ -4409,7 +4422,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.04-0450';
+  var VERSION = '2026.11.04-0503';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess v' + (window.APP_VERSION || '1.00') + ' · build ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
