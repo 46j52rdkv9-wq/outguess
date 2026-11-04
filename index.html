@@ -2720,11 +2720,11 @@ function hideMenu() { app.classList.remove('menu-on'); $('#menu').hidden = true;
 const goalieIQ = br => Math.round((br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total + (br === MY ? oppShots() : 0))) / 15);
 const MENU = { res: null, count: null };
 // ---------- version and what changed (each update goes up by 0.01) ----------
-const APP_VERSION = '1.09';
+const APP_VERSION = '1.10';
 const WHATS_NEW = [
-  'Goals fly off into space in the same direction they went in',
-  'Tokens: earn them with trick shots, wins and three daily challenges',
-  'New Goalies and balls in the Store. The Ninja is everyone\'s Goalie now',
+  'No more net: behind the goal is a black void',
+  'Goals keep going the way they went in and fade into the black',
+  'Every ball redesigned in neon to match the Goalies',
 ];
 window.APP_VERSION = APP_VERSION;
 function showWhatsNew() {
@@ -2930,12 +2930,12 @@ const KITS = [
   { id: 'phantom', name: 'Phantom', price: 40, desc: 'A hooded violet ghost that leaves afterimages. The hood lights up when it reads you.' }
 ];
 const BALLS = [
-  { id: 'soccer', name: 'Classic', price: 0, desc: "The ball it all started with." },
-  { id: 'basket', name: 'Basketball', price: 8, desc: 'Pebbled orange with black seams.' },
-  { id: 'base', name: 'Baseball', price: 8, desc: 'Red stitching that rolls as it spins.' },
-  { id: 'tennis', name: 'Tennis ball', price: 10, desc: 'Fuzzy yellow-green with a white seam.' },
-  { id: 'beach', name: 'Beach ball', price: 12, desc: 'Six bright panels spinning round.' },
-  { id: 'planet', name: 'Planet', price: 25, desc: 'A banded gas giant with its own ring.' }
+  { id: 'soccer', name: 'Classic', price: 0, desc: 'White neon. The ball it all started with.' },
+  { id: 'basket', name: 'Basketball', price: 8, desc: 'Orange neon with glowing seams.' },
+  { id: 'base', name: 'Baseball', price: 8, desc: 'White neon with red stitching that rolls as it spins.' },
+  { id: 'tennis', name: 'Tennis ball', price: 10, desc: 'Lime neon with a white seam.' },
+  { id: 'beach', name: 'Beach ball', price: 12, desc: 'Six neon colours spinning round.' },
+  { id: 'planet', name: 'Planet', price: 25, desc: 'A violet planet with a glowing cyan ring.' }
 ];
 const ownsKit = id => { const k = KITS.find(k => k.id === id); return !!k && (k.price === 0 || S.owned.includes(id)); };
 const ownsBall = id => { const b = BALLS.find(b => b.id === id); return !!b && (b.price === 0 || S.ownedBalls.includes(id)); };
@@ -3509,7 +3509,7 @@ function heatField(q) {
   const cv_ = document.createElement('canvas'); cv_.width = W; cv_.height = H; const k = cv_.getContext('2d'), img = k.createImageData(W, H);
   for (let i = 0; i < f.length; i++) {
     const t = clamp(f[i], 0, 1), fi = t * (RAMP.length - 1), a0 = Math.min(RAMP.length - 2, Math.floor(fi)), u = fi - a0, A = RAMP[a0], Bc = RAMP[a0 + 1];
-    img.data[i * 4] = lerp(A[0], Bc[0], u); img.data[i * 4 + 1] = lerp(A[1], Bc[1], u); img.data[i * 4 + 2] = lerp(A[2], Bc[2], u); img.data[i * 4 + 3] = 255 * (0.18 + 0.62 * t);
+    img.data[i * 4] = lerp(A[0], Bc[0], u); img.data[i * 4 + 1] = lerp(A[1], Bc[1], u); img.data[i * 4 + 2] = lerp(A[2], Bc[2], u); img.data[i * 4 + 3] = 255 * 0.85 * Math.pow(t, 1.1); // cold spots stay see-through, so the void stays black
   }
   k.putImageData(img, 0, 0);
   // contour lines (marching squares on the field), in 0..1 goal coordinates
@@ -3868,39 +3868,8 @@ function drawPitch(now) {
 function drawGoal(now, front) {
   const { gx0, gyt, gyb, gw, gh } = geo, gx1 = gx0 + gw;
   if (!front) {
-    const inset = gw * 0.05, bt = gyt - gh * 0.12, bb = gyb - gh * 0.16;
-    // inside the goal: a dark back net with diamond mesh, a shadowed patch of grass on the floor, shade under the bar
-    const ng = g.createLinearGradient(0, gyt, 0, gyb); ng.addColorStop(0, '#000'); ng.addColorStop(1, '#040b0b');
-    g.fillStyle = ng; g.fillRect(gx0, gyt, gw, gh);
-    const fg = g.createLinearGradient(0, bb, 0, gyb); fg.addColorStop(0, '#061811'); fg.addColorStop(1, '#0d2a20');
-    g.fillStyle = fg; g.beginPath(); g.moveTo(gx0, gyb); g.lineTo(gx0 + inset, bb); g.lineTo(gx1 - inset, bb); g.lineTo(gx1, gyb); g.closePath(); g.fill();
-    g.fillStyle = 'rgba(255,255,255,.03)'; g.beginPath(); g.moveTo(gx0, gyb); g.lineTo(gx0, gyt); g.lineTo(gx0 + inset, bt); g.lineTo(gx0 + inset, bb); g.closePath(); g.fill();
-    g.beginPath(); g.moveTo(gx1, gyb); g.lineTo(gx1, gyt); g.lineTo(gx1 - inset, bt); g.lineTo(gx1 - inset, bb); g.closePath(); g.fill();
-    const glow = g.createRadialGradient(gx0 + gw / 2, gyt, 0, gx0 + gw / 2, gyt, gw * 0.55); glow.addColorStop(0, 'rgba(210,235,225,.07)'); glow.addColorStop(1, 'rgba(210,235,225,0)');
-    g.fillStyle = glow; g.fillRect(gx0, gyt, gw, gh);
-    let rp = null;
-    if (G.ripple) { const t = (now - G.ripple.t0) / 900; if (t < 1) {
-      rp = { ...g2s(G.ripple.x, G.ripple.y), amp: (1 - t) * gh * 0.16 * Math.sin(t * 14) };
-      const gl = g.createRadialGradient(rp.x, rp.y, 0, rp.x, rp.y, gw * 0.4); gl.addColorStop(0, rgba(C.sodium, 0.45 * (1 - t))); gl.addColorStop(1, rgba(C.sodium, 0));
-      g.save(); g.beginPath(); g.rect(gx0, gyt, gw, gh); g.clip(); g.fillStyle = gl; g.fillRect(gx0, gyt, gw, gh); g.restore(); } }
-    // diamond mesh on the back net (it bulges where a goal hits it)
-    const bx0 = gx0 + inset, bw = gw - 2 * inset, bh = bb - bt;
-    const pt = (u, v) => { let x = bx0 + u * bw, y = bt + v * bh; if (rp) { const f = Math.exp(-((x - rp.x) ** 2 + (y - rp.y) ** 2) / (gw * gw * 0.02)); y -= rp.amp * f; x += (x - rp.x) * 0.1 * f * (rp.amp / gh); } return [x, y]; };
-    const dn = 16, m = bh / bw; // lines at 45 degrees make square diamonds
-    g.save(); g.beginPath(); g.rect(bx0, bt - 2, bw, bh + 4); g.clip();
-    g.strokeStyle = rgba(C.chalk, 0.15); g.lineWidth = 1;
-    for (const sg of [1, -1]) for (let c = -Math.ceil(m * dn) - 1; c <= dn + 1; c++) {
-      g.beginPath(); let on = false;
-      for (let st = 0; st <= 12; st++) { const v = st / 12, uu = c / dn + (sg > 0 ? v : 1 - v) * m; if (uu < -0.06 || uu > 1.06) { on = false; continue; } const [x, y] = pt(uu, v); on ? g.lineTo(x, y) : g.moveTo(x, y); on = true; }
-      g.stroke();
-    }
-    g.restore();
-    // side and roof netting, finer and fainter
-    g.strokeStyle = rgba(C.chalk, 0.07);
-    for (let i = 1; i < 6; i++) { const f = i / 6; g.beginPath(); g.moveTo(gx0 + inset * f, gyt + (bt - gyt) * f); g.lineTo(gx0 + inset * f, gyb + (bb - gyb) * f); g.moveTo(gx1 - inset * f, gyt + (bt - gyt) * f); g.lineTo(gx1 - inset * f, gyb + (bb - gyb) * f); g.stroke(); }
-    // shade under the crossbar
-    const sb = g.createLinearGradient(0, gyt, 0, gyt + gh * 0.22); sb.addColorStop(0, 'rgba(0,0,0,.55)'); sb.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = sb; g.fillRect(gx0, gyt, gw, gh * 0.22);
-    g.strokeStyle = rgba(C.chalk, 0.3); g.beginPath(); g.moveTo(gx0, gyt); g.lineTo(gx0 + inset, bt); g.lineTo(gx1 - inset, bt); g.lineTo(gx1, gyt); g.moveTo(gx0 + inset, bt); g.lineTo(gx0 + inset, bb); g.lineTo(gx0, gyb); g.moveTo(gx1 - inset, bt); g.lineTo(gx1 - inset, bb); g.lineTo(gx1, gyb); g.stroke();
+    // inside the goal: no net, just a black void
+    g.fillStyle = '#000'; g.fillRect(gx0, gyt, gw, gh);
   } else {
     // the frame sits just OUTSIDE the physics box: the inside edge of each post and of the bar is the wall the Goalie hits
     const lw = Math.max(4, gw * 0.018), o = lw / 2;
@@ -4067,24 +4036,40 @@ function drawPhantom(c, Q, s, now, blind, hist) {
 }
 const SKIN_DRAW = { ninja: (c, Q, s, n, b) => drawNeon(c, Q, s, n, b, true), classic: (c, Q, s, n, b) => drawNeon(c, Q, s, n, b, false), astro: drawAstro, skel: drawSkel, inferno: drawInferno, phantom: drawPhantom };
 // ---------- balls (looks only: the same size and flight) ----------
-function ballShade(c, r) { const g = c.createRadialGradient(-r * 0.35, -r * 0.4, r * 0.1, 0, 0, r); g.addColorStop(0, 'rgba(255,255,255,.35)'); g.addColorStop(0.5, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(0,0,0,.38)'); c.fillStyle = g; c.beginPath(); c.arc(0, 0, r, 0, TAU); c.fill(); }
+// ---------- balls: the same neon look as the Goalies. A dark core, a few glowing lines, a glowing rim ----------
+const BALL_LOOK = {
+  soccer: { rim: '#f2f5ef', glow: 'rgba(205,236,255,.9)', line: '#f2f5ef' },
+  basket: { rim: '#ff8a2a', glow: 'rgba(255,138,42,.9)', line: '#ff8a2a' },
+  base: { rim: '#f2f5ef', glow: 'rgba(205,236,255,.8)', line: '#ff3b4a' },
+  tennis: { rim: '#c8ff3a', glow: 'rgba(200,255,58,.9)', line: '#f4ffd6' },
+  beach: { rim: null, glow: 'rgba(255,255,255,.6)', line: '#f2f5ef' },
+  planet: { rim: '#b48cff', glow: 'rgba(162,107,255,.95)', line: '#5fe1ff' }
+};
 function drawBallSkin(c, id, x, y, r, rot) {
-  c.save(); c.translate(x, y);
-  if (id === 'planet') { c.save(); c.rotate(-0.35); c.strokeStyle = 'rgba(230,205,160,.75)'; c.lineWidth = r * 0.16; c.beginPath(); c.ellipse(0, 0, r * 1.7, r * 0.42, 0, Math.PI, TAU); c.stroke(); c.restore(); }
-  c.save(); c.beginPath(); c.arc(0, 0, r, 0, TAU); c.clip();
-  if (id === 'soccer') { c.fillStyle = '#f2f5ef'; c.fillRect(-r, -r, 2 * r, 2 * r); c.rotate(rot); c.fillStyle = '#0c1a1b'; const pent = (px, py, pr, ro) => { c.beginPath(); for (let k = 0; k < 5; k++) { const a = ro + k * TAU / 5; c.lineTo(px + Math.cos(a) * pr, py + Math.sin(a) * pr); } c.closePath(); c.fill(); }; for (let i = 0; i < 5; i++) { const a = i * TAU / 5 - Math.PI / 2; pent(Math.cos(a) * r * 0.92, Math.sin(a) * r * 0.92, r * 0.3, a + Math.PI); } c.strokeStyle = 'rgba(12,26,27,.35)'; c.lineWidth = r * 0.03; for (let i = 0; i < 5; i++) { const a = i * TAU / 5 - Math.PI / 2; c.beginPath(); c.moveTo(Math.cos(a) * r * 0.3, Math.sin(a) * r * 0.3); c.lineTo(Math.cos(a) * r * 0.66, Math.sin(a) * r * 0.66); c.stroke(); } c.beginPath(); for (let i = 0; i < 5; i++) { const a = i * TAU / 5 - Math.PI / 2; c.lineTo(Math.cos(a) * r * 0.3, Math.sin(a) * r * 0.3); } c.closePath(); c.fill(); }
-  else if (id === 'basket') { c.fillStyle = '#e8762c'; c.fillRect(-r, -r, 2 * r, 2 * r); c.fillStyle = 'rgba(120,40,0,.25)'; for (let i = 0; i < 40; i++) { const a = i * 2.4, d = (i * 37 % 100) / 100 * r; c.beginPath(); c.arc(Math.cos(a) * d, Math.sin(a) * d, r * 0.03, 0, TAU); c.fill(); }
-    c.rotate(rot); c.strokeStyle = '#1a0e08'; c.lineWidth = r * 0.07; c.beginPath(); c.moveTo(-r, 0); c.lineTo(r, 0); c.moveTo(0, -r); c.lineTo(0, r); c.stroke(); c.beginPath(); c.arc(-r * 1.25, 0, r * 0.95, -0.9, 0.9); c.stroke(); c.beginPath(); c.arc(r * 1.25, 0, r * 0.95, Math.PI - 0.9, Math.PI + 0.9); c.stroke(); }
-  else if (id === 'base') { c.fillStyle = '#f4f1ea'; c.fillRect(-r, -r, 2 * r, 2 * r); c.rotate(rot); c.strokeStyle = '#d42a2a'; c.lineWidth = r * 0.05;
-    for (const sd of [-1, 1]) { c.beginPath(); c.arc(sd * r * 1.18, 0, r * 0.82, sd < 0 ? -1.05 : Math.PI - 1.05, sd < 0 ? 1.05 : Math.PI + 1.05); c.stroke(); for (let k = -4; k <= 4; k++) { const a = (sd < 0 ? 0 : Math.PI) + k * 0.24, cx = sd * r * 1.18 + Math.cos(a) * r * 0.82, cy = Math.sin(a) * r * 0.82, nx = Math.cos(a), ny = Math.sin(a); c.beginPath(); c.moveTo(cx - nx * r * 0.09 - ny * r * 0.05, cy - ny * r * 0.09 + nx * r * 0.05); c.lineTo(cx - nx * r * 0.09 + ny * r * 0.05, cy - ny * r * 0.09 - nx * r * 0.05); c.stroke(); } } }
-  else if (id === 'tennis') { const g = c.createRadialGradient(0, 0, 0, 0, 0, r); g.addColorStop(0, '#e3f55a'); g.addColorStop(1, '#b6d11f'); c.fillStyle = g; c.fillRect(-r, -r, 2 * r, 2 * r); c.rotate(rot); c.strokeStyle = '#f7fbe6'; c.lineWidth = r * 0.1; c.beginPath(); c.arc(-r * 1.15, 0, r * 0.85, -1.2, 1.2); c.stroke(); c.beginPath(); c.arc(r * 1.15, 0, r * 0.85, Math.PI - 1.2, Math.PI + 1.2); c.stroke(); }
-  else if (id === 'beach') { c.rotate(rot); const cols = ['#ff4d5e', '#f7f7f2', '#3fa9ff', '#ffd24d', '#f7f7f2', '#4ddf8a']; cols.forEach((col, i) => { c.fillStyle = col; c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, r * 1.02, i * TAU / 6, (i + 1) * TAU / 6); c.closePath(); c.fill(); }); c.fillStyle = '#ffffff'; c.beginPath(); c.arc(0, 0, r * 0.22, 0, TAU); c.fill(); }
-  else if (id === 'planet') { const bands = ['#e9c58f', '#c98f55', '#f1dcb4', '#b2733f', '#e3b77c', '#f5e6c8', '#c4864c']; const off = (rot * r * 0.35) % (r * 2 / bands.length * bands.length);
-    for (let i = -bands.length; i < bands.length * 2; i++) { c.fillStyle = bands[((i % bands.length) + bands.length) % bands.length]; c.save(); c.rotate(-0.35); c.fillRect(-r * 1.5, -r + i * (r * 2 / bands.length) - (off % (r * 2 / bands.length)), r * 3, r * 2 / bands.length + 1); c.restore(); }
-    c.fillStyle = 'rgba(160,80,40,.5)'; c.beginPath(); c.ellipse(r * 0.3, r * 0.25, r * 0.2, r * 0.11, -0.35, 0, TAU); c.fill(); }
+  const L = BALL_LOOK[id] || BALL_LOOK.soccer, rimW = Math.max(1.2, r * 0.15), lw = Math.max(0.9, r * 0.085);
+  c.save(); c.translate(x, y); c.lineCap = 'round'; c.lineJoin = 'round';
+  const ring = (front) => { c.save(); c.rotate(-0.35); c.strokeStyle = '#5fe1ff'; c.shadowColor = 'rgba(95,225,255,.9)'; c.shadowBlur = r * 0.5; c.lineWidth = Math.max(1, r * 0.1); c.globalAlpha *= front ? 1 : 0.45; c.beginPath(); c.ellipse(0, 0, r * 1.65, r * 0.42, 0, front ? 0 : Math.PI, front ? Math.PI : Math.PI * 2); c.stroke(); c.restore(); };
+  if (id === 'planet') ring(false);
+  // the core
+  c.fillStyle = '#050b0c'; c.beginPath(); c.arc(0, 0, r, 0, TAU); c.fill();
+  // the lines, inside the ball
+  c.save(); c.beginPath(); c.arc(0, 0, r * 0.94, 0, TAU); c.clip(); c.rotate(rot);
+  c.strokeStyle = L.line; c.lineWidth = lw; c.shadowColor = L.glow; c.shadowBlur = r * 0.35;
+  if (id === 'basket') { c.beginPath(); c.moveTo(-r, 0); c.lineTo(r, 0); c.moveTo(0, -r); c.lineTo(0, r); c.stroke(); c.beginPath(); c.arc(-r * 1.3, 0, r * 0.95, -0.85, 0.85); c.stroke(); c.beginPath(); c.arc(r * 1.3, 0, r * 0.95, Math.PI - 0.85, Math.PI + 0.85); c.stroke(); }
+  else if (id === 'base') { for (const sd of [-1, 1]) { const cx = sd * r * 1.2, a0 = sd < 0 ? 0 : Math.PI; c.beginPath(); c.arc(cx, 0, r * 0.82, a0 - 1.0, a0 + 1.0); c.stroke(); c.lineWidth = lw * 0.8; for (let k = -3; k <= 3; k++) { const a = a0 + k * 0.28, px = cx + Math.cos(a) * r * 0.82, py = Math.sin(a) * r * 0.82, nx = Math.cos(a), ny = Math.sin(a); c.beginPath(); c.moveTo(px - nx * r * 0.1 - ny * r * 0.06, py - ny * r * 0.1 + nx * r * 0.06); c.lineTo(px - nx * r * 0.1 + ny * r * 0.06, py - ny * r * 0.1 - nx * r * 0.06); c.stroke(); } c.lineWidth = lw; } }
+  else if (id === 'tennis') { c.beginPath(); c.arc(-r * 1.15, 0, r * 0.85, -1.2, 1.2); c.stroke(); c.beginPath(); c.arc(r * 1.15, 0, r * 0.85, Math.PI - 1.2, Math.PI + 1.2); c.stroke(); }
+  else if (id === 'beach') { const cols = ['#ff4d5e', '#ffd24d', '#3fa9ff', '#4ddf8a', '#ff5fa2', '#5fe1ff']; for (let i = 0; i < 6; i++) { const a = i * TAU / 6; c.strokeStyle = cols[i]; c.shadowColor = cols[i]; c.beginPath(); c.moveTo(Math.cos(a) * r * 0.24, Math.sin(a) * r * 0.24); c.lineTo(Math.cos(a) * r, Math.sin(a) * r); c.stroke(); } c.strokeStyle = '#f2f5ef'; c.shadowColor = 'rgba(255,255,255,.8)'; c.beginPath(); c.arc(0, 0, r * 0.24, 0, TAU); c.stroke(); }
+  else if (id === 'planet') { c.rotate(-rot - 0.35); for (const [yy, ww] of [[-0.42, 0.75], [0.05, 1], [0.48, 0.7]]) { c.beginPath(); c.moveTo(-r * ww, yy * r); c.quadraticCurveTo(0, yy * r + r * 0.12, r * ww, yy * r); c.stroke(); } }
+  else { // classic: a pentagon in the middle with lines out to the edge
+    c.beginPath(); for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i * TAU / 5; c.lineTo(Math.cos(a) * r * 0.36, Math.sin(a) * r * 0.36); } c.closePath(); c.stroke();
+    c.beginPath(); for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i * TAU / 5; c.moveTo(Math.cos(a) * r * 0.36, Math.sin(a) * r * 0.36); c.lineTo(Math.cos(a) * r, Math.sin(a) * r); } c.stroke(); }
   c.restore();
-  ballShade(c, r);
-  if (id === 'planet') { c.save(); c.rotate(-0.35); c.strokeStyle = 'rgba(240,220,180,.9)'; c.lineWidth = r * 0.16; c.beginPath(); c.ellipse(0, 0, r * 1.7, r * 0.42, 0, 0, Math.PI); c.stroke(); c.restore(); }
+  // the rim
+  c.shadowBlur = r * 0.6;
+  if (L.rim) { c.strokeStyle = L.rim; c.shadowColor = L.glow; c.lineWidth = rimW; c.beginPath(); c.arc(0, 0, r - rimW / 2, 0, TAU); c.stroke(); }
+  else { const cols = ['#ff4d5e', '#ffd24d', '#3fa9ff', '#4ddf8a', '#ff5fa2', '#5fe1ff']; c.lineWidth = rimW; for (let i = 0; i < 6; i++) { c.strokeStyle = cols[i]; c.shadowColor = cols[i]; c.beginPath(); c.arc(0, 0, r - rimW / 2, rot + i * TAU / 6, rot + (i + 1) * TAU / 6 + 0.02); c.stroke(); } }
+  c.shadowBlur = 0;
+  if (id === 'planet') ring(true);
   c.restore();
 }
 
@@ -4109,16 +4094,7 @@ function drawBody(pose, now, blind) {
   g.restore();
 }
 function drawBall(x, y, r, rot, alpha = 1, id) {
-  const bid = id || curBall();
-  if (bid !== 'soccer' && BALLS.some(b => b.id === bid)) { g.save(); g.globalAlpha *= alpha; drawBallSkin(g, bid, x, y, r, rot); g.restore(); return; }
-  g.save(); g.globalAlpha *= alpha; g.translate(x, y); g.rotate(rot);
-  const rg = g.createRadialGradient(-r * 0.3, -r * 0.35, r * 0.1, 0, 0, r); rg.addColorStop(0, C.chalk); rg.addColorStop(1, C.chalk2);
-  g.fillStyle = rg; g.beginPath(); g.arc(0, 0, r, 0, 7); g.fill();
-  g.clip(); g.fillStyle = C.night;
-  const pent = (cx, cy, s) => { g.beginPath(); for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i * 2 * Math.PI / 5; i ? g.lineTo(cx + Math.cos(a) * s, cy + Math.sin(a) * s) : g.moveTo(cx + Math.cos(a) * s, cy + Math.sin(a) * s); } g.closePath(); g.fill(); };
-  pent(0, 0, r * 0.3);
-  for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + (i + 0.5) * 2 * Math.PI / 5; pent(Math.cos(a) * r * 0.92, Math.sin(a) * r * 0.92, r * 0.28); }
-  g.restore();
+  g.save(); g.globalAlpha *= alpha; drawBallSkin(g, id || curBall(), x, y, r, rot); g.restore();
 }
 function shadow(x, y, r, a = 0.4) { g.fillStyle = rgba(C.night, a); g.beginPath(); g.ellipse(x, y, r * 1.1, r * 0.35, 0, 0, 7); g.fill(); }
 function drawLiveBands(now) {
@@ -4161,26 +4137,14 @@ function spaceBall(now) {
   const S0 = G.space; if (!S0) return null;
   const q = clamp((now - S0.t0) / SPACE_MS, 0, 1), e = 1 - Math.pow(1 - q, 2.2), A = g2s(S0.gx, S0.gy), V = g2s(S0.vx, S0.vy);
   const at = ee => ({ x: A.x + S0.ux * S0.L * ee, y: A.y + S0.uy * S0.L * ee });
-  const p = at(e); return { ...p, r: S0.r0 * (1 - e), a: 1 - Math.pow(q, 3), q, at: qq => at(qq), V };
+  const p = at(e); return { ...p, r: S0.r0 * (1 - 0.45 * e), a: Math.pow(1 - q, 1.6), q, at: qq => at(qq), V };
 }
-function drawSpace(now) {
-  const S0 = G.space; if (!S0) return;
-  const el = now - S0.t0; if (el > 2600) { G.space = null; return; } if (el < 0) return;
-  const starA = clamp(el / 400, 0, 1) * clamp(1 - (el - 1900) / 700, 0, 1), V = g2s(clamp(S0.vx, 0.15, 0.85), clamp(S0.vy, 0.2, 0.8)), { gx0, gyt, gw, gh } = geo;
-  g.save(); g.beginPath(); g.rect(gx0, gyt, gw, gh); g.clip();
-  const neb = (x, y, r, rgb, a) => { const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(${rgb},${a})`); gr.addColorStop(1, `rgba(${rgb},0)`); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); };
-  neb(V.x, V.y, gw * 0.42, '90,70,200', 0.28 * starA); neb(V.x + gw * 0.12, V.y - gh * 0.15, gw * 0.25, '60,150,220', 0.18 * starA);
-  for (const st of SPACE_STARS) { const tw = 0.5 + 0.5 * Math.sin(now / 260 + st.ph); g.fillStyle = `rgba(235,242,255,${starA * (0.35 + 0.65 * tw)})`; g.beginPath(); g.arc(gx0 + st.x * gw, gyt + st.y * gh, st.r * Math.max(0.8, gw / 420), 0, 7); g.fill(); }
-  g.restore();
-}
-// the ball itself on its way out, with a thin sparkle trail and a last twinkle
+function drawSpace(now) { if (G.space && now - G.space.t0 > SPACE_MS + 200) G.space = null; }
 function drawSpaceBall(now, rot) {
-  const B = spaceBall(now); if (!B) return;
-  const { gx0, gyt, gw, gh } = geo, R0 = G.space.r0;
+  const B = spaceBall(now); if (!B || B.a <= 0.01) return;
+  const { gx0, gyt, gw, gh } = geo;
   g.save(); g.beginPath(); g.rect(gx0, gyt, gw, gh); g.clip();
-  for (let k = 1; k <= 14; k++) { const qq = clamp(B.q - k * 0.025, 0, 1), p = B.at(1 - Math.pow(1 - qq, 2.2)); g.fillStyle = `rgba(210,230,255,${0.85 * (1 - k / 14) * B.a})`; g.beginPath(); g.arc(p.x + Math.sin(k * 3.1) * 3, p.y + Math.cos(k * 2.3) * 3, Math.max(1, R0 * 0.16 * (1 - k / 14)), 0, 7); g.fill(); }
-  if (B.r > 0.4) { const gr = g.createRadialGradient(B.x, B.y, 0, B.x, B.y, B.r * 2.4); gr.addColorStop(0, `rgba(200,225,255,${0.35 * B.a})`); gr.addColorStop(1, 'rgba(200,225,255,0)'); g.fillStyle = gr; g.beginPath(); g.arc(B.x, B.y, B.r * 2.4, 0, 7); g.fill(); drawBall(B.x, B.y, B.r, rot, B.a); }
-  if (B.q > 0.9) { const f = Math.sin(clamp((B.q - 0.9) / 0.1, 0, 1) * Math.PI), R = R0 * 1.4 * f; g.strokeStyle = `rgba(235,245,255,${f})`; g.lineWidth = 1.4; g.beginPath(); g.moveTo(B.V.x - R, B.V.y); g.lineTo(B.V.x + R, B.V.y); g.moveTo(B.V.x, B.V.y - R); g.lineTo(B.V.x, B.V.y + R); g.stroke(); }
+  drawBall(B.x, B.y, Math.max(0.5, B.r), rot, B.a);
   g.restore();
 }
 function drawFlash(now) {
@@ -4422,7 +4386,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.04-0503';
+  var VERSION = '2026.11.04-2149';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess v' + (window.APP_VERSION || '1.00') + ' · build ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
