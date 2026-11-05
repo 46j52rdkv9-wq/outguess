@@ -2720,12 +2720,11 @@ function hideMenu() { app.classList.remove('menu-on'); $('#menu').hidden = true;
 const goalieIQ = br => Math.round((br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total + (br === MY ? oppShots() : 0))) / 15);
 const MENU = { res: null, count: null };
 // ---------- version and what changed (each update goes up by 0.01) ----------
-const APP_VERSION = '1.14';
+const APP_VERSION = '1.15';
 const WHATS_NEW = [
+  'The space behind the goal has a faint blue glow, so your line and the ball\'s tail always show',
   'Neon goal: glowing posts and a wireframe opening onto deep space',
-  'Deeper space: drifting layers of stars, the odd shooting star, a ripple of light on every goal',
   'The ball rides your swipe line exactly, and the line fades out toward where it lands',
-  'The ball leaves a comet tail and glows on the grass. Saves burst with sparks',
 ];
 window.APP_VERSION = APP_VERSION;
 function showWhatsNew() {
@@ -3875,6 +3874,8 @@ function drawGoal(now, front) {
   if (!front) {
     // inside the goal: no net. A black void of deep space, inside the goal's 3D frame
     g.fillStyle = '#000'; g.fillRect(gx0, gyt, gw, gh);
+    // always a faint blue, the cold colour of the heat map, so the swipe line and the ball's tail show against it
+    g.fillStyle = 'rgba(40,90,200,.2)'; g.fillRect(gx0, gyt, gw, gh);
     const inset = gw * 0.05, bt = gyt - gh * 0.12, bb = gyb - gh * 0.16;
     g.fillStyle = 'rgba(255,255,255,.03)'; g.beginPath(); g.moveTo(gx0, gyb); g.lineTo(gx0, gyt); g.lineTo(gx0 + inset, bt); g.lineTo(gx0 + inset, bb); g.closePath(); g.fill();
     g.beginPath(); g.moveTo(gx1, gyb); g.lineTo(gx1, gyt); g.lineTo(gx1 - inset, bt); g.lineTo(gx1 - inset, bb); g.closePath(); g.fill();
@@ -4612,7 +4613,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.05-0508';
+  var VERSION = '2026.11.05-0514';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess v' + (window.APP_VERSION || '1.00') + ' · build ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
