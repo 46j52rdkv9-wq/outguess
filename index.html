@@ -2720,10 +2720,10 @@ function hideMenu() { app.classList.remove('menu-on'); $('#menu').hidden = true;
 const goalieIQ = br => Math.round((br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total + (br === MY ? oppShots() : 0))) / 15);
 const MENU = { res: null, count: null };
 // ---------- version and what changed (each update goes up by 0.01) ----------
-const APP_VERSION = '1.16';
+const APP_VERSION = '1.17';
 const WHATS_NEW = [
+  'Your line shows its whole tail the moment you let go, all the way to where the ball lands',
   'A new field: night turf, wide stripes, a faint neon grid and glowing markings',
-  'Your line no longer cuts off: it runs all the way to the ball and darkens toward where it lands',
   'The space behind the goal keeps its faint blue glow',
 ];
 window.APP_VERSION = APP_VERSION;
@@ -4231,7 +4231,8 @@ const mixCol = (hex, to, t) => { const p = h => { const v = parseInt(h.replace('
 function drawFlightLine(sh, alpha, col) {
   const fp = flightPath(sh), L = TRAIL_LOOK, e = performance.now() - sh.t0, q = clamp(e / sh.T, 0, 1);
   if (!/^#[0-9a-f]{3,8}$/i.test(col)) col = C.sodium;
-  const dEnd = Math.max(fp.swLen, q * fp.tot), P = [], D = [];
+  // the whole tail shows the moment you let go: it shoots out from the end of your swipe to the landing spot in a blink
+  const dEnd = lerp(fp.swLen, fp.tot, 1 - Math.pow(1 - clamp(e / 160, 0, 1), 2)), P = [], D = [];
   for (let i = 0; i < fp.P.length && fp.cum[i] <= dEnd; i++) { P.push(fp.P[i]); D.push(fp.cum[i]); }
   if (D[D.length - 1] < dEnd) { P.push(pathAt(fp, dEnd / fp.tot)); D.push(dEnd); }
   const n = P.length; if (n < 2 || alpha <= 0) return;
@@ -4627,7 +4628,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.05-0520';
+  var VERSION = '2026.11.05-0524';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess v' + (window.APP_VERSION || '1.00') + ' · build ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
