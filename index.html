@@ -2720,11 +2720,11 @@ function hideMenu() { app.classList.remove('menu-on'); $('#menu').hidden = true;
 const goalieIQ = br => Math.round((br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total + (br === MY ? oppShots() : 0))) / 15);
 const MENU = { res: null, count: null };
 // ---------- version and what changed (each update goes up by 0.01) ----------
-const APP_VERSION = '1.18';
+const APP_VERSION = '1.19';
 const WHATS_NEW = [
+  'Goals fly off into deep space, shrinking to a speck before they wink out',
   'The field is out in space now: stars, nebula and a neon grid under glowing lines',
-  'Your line shows its whole tail the moment you let go, all the way to where the ball lands',
-  'The space behind the goal keeps its faint blue glow',
+  'Your line shows its whole tail the moment you let go',
 ];
 window.APP_VERSION = APP_VERSION;
 function showWhatsNew() {
@@ -4292,7 +4292,7 @@ function drawLiveBands(now) {
 // a save: a burst where the glove met the ball
 // ---------- the goal moment: the ball keeps going into the black behind the net, as if it were deep space ----------
 const SPACE_STARS = Array.from({ length: 90 }, (_, i) => ({ x: (i * 0.618034) % 1, y: (i * 0.3819 + i * i * 0.0007) % 1, r: 0.4 + ((i * 7) % 10) / 10 * 1.1, ph: i * 1.7 }));
-const SPACE_MS = 1800;
+const SPACE_MS = 3000;
 // the ball carries on the way it was going when it crossed the line: same direction, same speed at first,
 // slowing and shrinking as it falls away into the distance. It stays inside the net's black.
 function spaceStart(key, t0, gx, gy, r0, dir) {
@@ -4311,9 +4311,12 @@ function spaceStart(key, t0, gx, gy, r0, dir) {
 // where the ball is on its way out
 function spaceBall(now) {
   const S0 = G.space; if (!S0) return null;
-  const q = clamp((now - S0.t0) / SPACE_MS, 0, 1), e = 1 - Math.pow(1 - q, 2.2), A = g2s(S0.gx, S0.gy), V = g2s(S0.vx, S0.vy);
-  const at = ee => ({ x: A.x + S0.ux * S0.L * ee, y: A.y + S0.uy * S0.L * ee });
-  const p = at(e); return { ...p, r: S0.r0 * (1 - 0.45 * e), a: Math.pow(1 - q, 1.6), q, at: qq => at(qq), V };
+  // it flies away from you into depth: the farther it gets, the smaller it is and the slower it seems to move,
+  // until it's a speck that winks out
+  const q = clamp((now - S0.t0) / SPACE_MS, 0, 1), A = g2s(S0.gx, S0.gy), V = g2s(S0.vx, S0.vy), ZF = 18;
+  const zOf = qq => 1 + (ZF - 1) * Math.pow(qq, 2.2), off = z => (1 - 1 / z) / (1 - 1 / ZF);
+  const at = qq => { const k = off(zOf(qq)); return { x: A.x + S0.ux * S0.L * k, y: A.y + S0.uy * S0.L * k }; };
+  const z = zOf(q), p = at(q); return { ...p, r: S0.r0 / z, a: q < 0.85 ? 1 : 1 - (q - 0.85) / 0.15, q, at, V };
 }
 // deep space behind the goal: three layers of stars, drawn once and reused. Near stars move more than far ones
 let SPACE_L = null;
@@ -4370,7 +4373,8 @@ function drawSpaceBall(now, rot) {
   const B = spaceBall(now); if (!B || B.a <= 0.01) return;
   const { gx0, gyt, gw, gh } = geo;
   g.save(); g.beginPath(); g.rect(gx0, gyt, gw, gh); g.clip();
-  drawBall(B.x, B.y, Math.max(0.5, B.r), rot, B.a);
+  if (B.r > 1.4) drawBall(B.x, B.y, B.r, rot, B.a);
+  else { const L = BALL_LOOK[curBall()] || BALL_LOOK.soccer; g.fillStyle = L.rim || '#f2f5ef'; g.globalAlpha = B.a; g.shadowColor = L.glow; g.shadowBlur = 6; g.beginPath(); g.arc(B.x, B.y, Math.max(0.6, B.r), 0, 7); g.fill(); g.shadowBlur = 0; g.globalAlpha = 1; }
   g.restore();
 }
 function drawFlash(now) {
@@ -4633,7 +4637,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.05-1332';
+  var VERSION = '2026.11.05-1638';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess v' + (window.APP_VERSION || '1.00') + ' · build ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
