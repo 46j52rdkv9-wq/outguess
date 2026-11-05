@@ -2720,10 +2720,10 @@ function hideMenu() { app.classList.remove('menu-on'); $('#menu').hidden = true;
 const goalieIQ = br => Math.round((br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total + (br === MY ? oppShots() : 0))) / 15);
 const MENU = { res: null, count: null };
 // ---------- version and what changed (each update goes up by 0.01) ----------
-const APP_VERSION = '1.17';
+const APP_VERSION = '1.18';
 const WHATS_NEW = [
+  'The field is out in space now: stars, nebula and a neon grid under glowing lines',
   'Your line shows its whole tail the moment you let go, all the way to where the ball lands',
-  'A new field: night turf, wide stripes, a faint neon grid and glowing markings',
   'The space behind the goal keeps its faint blue glow',
 ];
 window.APP_VERSION = APP_VERSION;
@@ -3780,21 +3780,26 @@ function paintBackdrop() {
   k.restore();
   // the LED board's frame (its text scrolls, so it's drawn each frame)
   k.fillStyle = '#041010'; k.fillRect(0, horizon - 13, W, 13);
-  // ---- the field at night: deep turf, wide mowing stripes in perspective, a faint neon grid running to the horizon,
-  // a cool pool of light over the goalmouth and the spot, and glowing markings ----
-  gr = k.createLinearGradient(0, horizon, 0, H); gr.addColorStop(0, '#061611'); gr.addColorStop(0.35, '#0a2219'); gr.addColorStop(1, '#071a14'); k.fillStyle = gr; k.fillRect(0, horizon, W, H - horizon);
+  // ---- the field in space: a dark floor of deep space under a neon grid, stars and nebula drifting under the markings ----
+  gr = k.createLinearGradient(0, horizon, 0, H); gr.addColorStop(0, '#03050d'); gr.addColorStop(0.4, '#060a1c'); gr.addColorStop(1, '#040713'); k.fillStyle = gr; k.fillRect(0, horizon, W, H - horizon);
   const vpY = horizon - H * 0.85, sOf = y => (y - vpY) / (H - vpY);
-  // mowing stripes: bands across the pitch that get wider as they come toward you
-  for (let y = horizon, hh = 7, i = 0; y < H; y += hh, hh *= 1.22, i++) { if (i & 1) { k.fillStyle = 'rgba(160,230,200,.055)'; k.fillRect(0, y, W, Math.min(H, y + hh) - y); } }
-  // fine grass texture
-  for (let i = 0; i < W * 4; i++) { const y = horizon + Math.random() * (H - horizon), sz = 0.5 + sOf(y) * 1.1; k.fillStyle = Math.random() < 0.5 ? 'rgba(255,255,255,.035)' : 'rgba(0,0,0,.1)'; k.fillRect(Math.random() * W, y, sz, sz * 1.6); }
-  // the neon grid: lines that run toward the goal and cross lines on the stripes, very faint, fading into the distance
+  { // nebula clouds, faint
+    const neb = (x, y, rx, ry, rgb, a) => { k.save(); k.translate(x, y); k.scale(1, ry / rx); const ng = k.createRadialGradient(0, 0, 0, 0, 0, rx); ng.addColorStop(0, `rgba(${rgb},${a})`); ng.addColorStop(1, `rgba(${rgb},0)`); k.fillStyle = ng; k.beginPath(); k.arc(0, 0, rx, 0, 7); k.fill(); k.restore(); };
+    neb(W * 0.18, horizon + (H - horizon) * 0.45, W * 0.55, (H - horizon) * 0.22, '90,70,200', 0.16); neb(W * 0.85, horizon + (H - horizon) * 0.7, W * 0.5, (H - horizon) * 0.2, '40,140,200', 0.12); neb(W * 0.55, horizon + (H - horizon) * 0.2, W * 0.4, (H - horizon) * 0.1, '150,80,200', 0.08); }
+  // stars: tiny and dim far away, bigger toward you
+  { let sd = 7; const rnd = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
+    for (let i = 0; i < W * 0.9; i++) { const y = horizon + Math.pow(rnd(), 0.8) * (H - horizon), x = rnd() * W, d = sOf(y), r = 0.3 + d * (0.4 + rnd() * 1.1), a = 0.25 + rnd() * 0.55;
+      if (r > 1.0) { const sg = k.createRadialGradient(x, y, 0, x, y, r * 3); sg.addColorStop(0, `rgba(220,232,255,${a * 0.4})`); sg.addColorStop(1, 'rgba(220,232,255,0)'); k.fillStyle = sg; k.beginPath(); k.arc(x, y, r * 3, 0, 7); k.fill(); }
+      k.fillStyle = `rgba(230,238,255,${a})`; k.beginPath(); k.arc(x, y, r, 0, 7); k.fill(); } }
+  // the neon grid: lines that run toward the goal and cross lines that spread out as they come toward you
   k.save(); k.lineWidth = 1;
-  for (let j = -12; j <= 12; j++) { const xb = cx + j * W * 0.16, xt = cx + j * W * 0.16 * sOf(horizon); const lg = k.createLinearGradient(0, horizon, 0, H); lg.addColorStop(0, 'rgba(95,225,255,0)'); lg.addColorStop(0.5, 'rgba(95,225,255,.07)'); lg.addColorStop(1, 'rgba(95,225,255,.13)'); k.strokeStyle = lg; k.beginPath(); k.moveTo(xt, horizon); k.lineTo(xb, H); k.stroke(); }
-  for (let y = horizon, hh = 7, i = 0; y < H; y += hh, hh *= 1.22, i++) { k.strokeStyle = `rgba(95,225,255,${0.02 + 0.08 * sOf(y)})`; k.beginPath(); k.moveTo(0, y); k.lineTo(W, y); k.stroke(); }
+  for (let j = -12; j <= 12; j++) { const xb = cx + j * W * 0.16, xt = cx + j * W * 0.16 * sOf(horizon); const lg = k.createLinearGradient(0, horizon, 0, H); lg.addColorStop(0, 'rgba(95,225,255,0)'); lg.addColorStop(0.5, 'rgba(95,225,255,.10)'); lg.addColorStop(1, 'rgba(95,225,255,.18)'); k.strokeStyle = lg; k.beginPath(); k.moveTo(xt, horizon); k.lineTo(xb, H); k.stroke(); }
+  for (let y = horizon, hh = 7, i = 0; y < H; y += hh, hh *= 1.22, i++) { k.strokeStyle = `rgba(95,225,255,${0.03 + 0.11 * sOf(y)})`; k.beginPath(); k.moveTo(0, y); k.lineTo(W, y); k.stroke(); }
   k.restore();
+  // a soft haze where the floor meets the stands
+  { const hz = k.createLinearGradient(0, horizon, 0, horizon + (H - horizon) * 0.12); hz.addColorStop(0, 'rgba(120,150,230,.12)'); hz.addColorStop(1, 'rgba(120,150,230,0)'); k.fillStyle = hz; k.fillRect(0, horizon, W, (H - horizon) * 0.12); }
   // a cool pool of light from the floodlights over the goalmouth and the penalty spot
-  const pool = (x, y, rx, ry, a) => { k.save(); k.translate(x, y); k.scale(1, ry / rx); const pg = k.createRadialGradient(0, 0, 0, 0, 0, rx); pg.addColorStop(0, `rgba(200,240,230,${a})`); pg.addColorStop(1, 'rgba(200,240,230,0)'); k.fillStyle = pg; k.beginPath(); k.arc(0, 0, rx, 0, 7); k.fill(); k.restore(); };
+  const pool = (x, y, rx, ry, a) => { k.save(); k.translate(x, y); k.scale(1, ry / rx); const pg = k.createRadialGradient(0, 0, 0, 0, 0, rx); pg.addColorStop(0, `rgba(170,200,255,${a})`); pg.addColorStop(1, 'rgba(170,200,255,0)'); k.fillStyle = pg; k.beginPath(); k.arc(0, 0, rx, 0, 7); k.fill(); k.restore(); };
   pool(cx, gyb + depth * 0.12, gw * 0.75, depth * 0.3, 0.08); pool(cx, by + 12, W * 0.45, depth * 0.22, 0.07);
   // the markings, glowing: goal line, six-yard box, the penalty box lines running off the sides, and the spot
   const sy = gyb + depth * 0.3, py = Math.min(H - 4, by + geo.r0 * 1.1), mk = () => {
@@ -3805,7 +3810,7 @@ function paintBackdrop() {
   k.strokeStyle = 'rgba(205,236,255,.10)'; k.lineWidth = 8; mk(); k.stroke();
   k.strokeStyle = 'rgba(238,242,231,.8)'; k.lineWidth = 1.8; k.shadowColor = 'rgba(205,236,255,.85)'; k.shadowBlur = 9; mk(); k.stroke();
   k.save(); k.translate(cx, py); k.scale(1, 0.32); k.fillStyle = 'rgba(238,242,231,.85)'; k.beginPath(); k.arc(0, 0, 6, 0, 7); k.fill(); k.restore(); k.shadowBlur = 0;
-  const gl = k.createLinearGradient(0, gyb, 0, gyb + depth * 0.5); gl.addColorStop(0, 'rgba(190,230,220,.06)'); gl.addColorStop(1, 'rgba(190,230,220,0)'); k.fillStyle = gl; k.fillRect(0, gyb, W, depth * 0.5);
+  const gl = k.createLinearGradient(0, gyb, 0, gyb + depth * 0.5); gl.addColorStop(0, 'rgba(170,200,255,.07)'); gl.addColorStop(1, 'rgba(170,200,255,0)'); k.fillStyle = gl; k.fillRect(0, gyb, W, depth * 0.5);
   // shadow of the net and frame on the grass
   k.fillStyle = rgba(C.night, 0.35); k.beginPath(); k.moveTo(geo.gx0, gyb); k.lineTo(geo.gx0 + gw, gyb); k.lineTo(geo.gx0 + gw + 14, gyb + 9); k.lineTo(geo.gx0 + 10, gyb + 9); k.closePath(); k.fill();
   // vignette
@@ -4628,7 +4633,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.05-0524';
+  var VERSION = '2026.11.05-1332';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess v' + (window.APP_VERSION || '1.00') + ' · build ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
