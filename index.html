@@ -2720,11 +2720,11 @@ function hideMenu() { app.classList.remove('menu-on'); $('#menu').hidden = true;
 const goalieIQ = br => Math.round((br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total + (br === MY ? oppShots() : 0))) / 15);
 const MENU = { res: null, count: null };
 // ---------- version and what changed (each update goes up by 0.01) ----------
-const APP_VERSION = '1.21';
+const APP_VERSION = '1.22';
 const WHATS_NEW = [
+  'New Goalie in the Store: Mitch, 200 tokens',
   'A new sky: a ringed planet, nebula and stars. The fans are the lights on its ring',
   'A real pitch again, in true perspective, floating in space',
-  'On a goal the ring lights up in a wave',
 ];
 window.APP_VERSION = APP_VERSION;
 function showWhatsNew() {
@@ -2928,7 +2928,8 @@ const KITS = [
   { id: 'skel', name: 'Skeleton', price: 20, desc: 'Bones and a skull with a green glow. The sockets light up when it reads you.' },
   { id: 'inferno', name: 'Inferno', price: 30, desc: 'A body of fire with fireball mitts. It smoulders while blind and blazes when it reads you.' },
   { id: 'phantom', name: 'Phantom', price: 40, desc: 'A hooded violet ghost that leaves afterimages. The hood lights up when it reads you.' },
-  { id: 'juju', name: 'Juju', price: 0, desc: 'Afro, shades, diamond studs and a racing jacket. His shades slide down when he reads you.' }
+  { id: 'juju', name: 'Juju', price: 0, desc: 'Afro, shades, diamond studs and a racing jacket. His shades slide down when he reads you.' },
+  { id: 'mitch', name: 'Mitch', price: 200, desc: 'Messy blond hair and all black. His eyes stay shut while he is blind and snap open, glowing blue, when he reads you.' }
 ];
 const BALLS = [
   { id: 'soccer', name: 'Classic', price: 0, desc: 'White neon. The ball it all started with.' },
@@ -4098,7 +4099,70 @@ function drawJuju(c, Q, s, now, blind) {
   c.restore();
 }
 const lerpP = (a, b, t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
-const SKIN_DRAW = { juju: drawJuju, ninja: (c, Q, s, n, b) => drawNeon(c, Q, s, n, b, true), classic: (c, Q, s, n, b) => drawNeon(c, Q, s, n, b, false), astro: drawAstro, skel: drawSkel, inferno: drawInferno, phantom: drawPhantom };
+// Mitch: messy blond hair, blue eyes, a plain black tee, black shorts, black socks and trainers, white keeper gloves.
+// His tell: eyes shut while he's blind; they snap open, glowing blue, the moment he reads you.
+function drawMitch(c, Q, s, now, blind) {
+  const { up, rt, tilt } = bodyFrame(Q, s), hr = 0.13 * s, unit = (a, b) => { const x = a.x - b.x, y = a.y - b.y, l = Math.hypot(x, y) || 1; return { x: x / l, y: y / l }; };
+  const add = (p, ...vs) => { let x = p.x, y = p.y; for (const [v, k] of vs) { x += v.x * k * s; y += v.y * k * s; } return { x, y }; };
+  const TEE = '#14161a', TEE2 = '#24272d', SKIN = '#f0c4a0', SKIN_D = '#c9967a', HAIR = '#e3c27a', HAIR_D = '#b8944e', EYE = '#4da3ff', EDGE = 'rgba(120,190,255,.55)';
+  glowDot(c, Q.S.x, Q.S.y, 1.0 * s, '120,190,255', 0.07);
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  // legs: skin from the shorts to the socks, black socks, black trainers with white soles
+  for (const [h, k, f] of [[Q.hipL, Q.KL, Q.FL], [Q.hipR, Q.KR, Q.FR]]) {
+    const leg = new Path2D(); leg.moveTo(h.x, h.y); leg.lineTo(k.x, k.y); leg.lineTo(f.x, f.y);
+    c.strokeStyle = SKIN_D; c.lineWidth = 0.1 * s; c.stroke(leg); c.strokeStyle = SKIN; c.lineWidth = 0.08 * s; c.stroke(leg);
+    const so = lerpP(k, f, 0.35), sock = new Path2D(); sock.moveTo(so.x, so.y); sock.lineTo(f.x, f.y); c.strokeStyle = '#0d0e10'; c.lineWidth = 0.095 * s; c.stroke(sock);
+    c.fillStyle = '#0b0c0e'; c.beginPath(); c.ellipse(f.x, f.y + 0.025 * s, 0.11 * s, 0.065 * s, 0, 0, TAU); c.fill(); c.strokeStyle = EDGE; c.lineWidth = Math.max(0.8, 0.012 * s); c.stroke();
+    c.fillStyle = 'rgba(242,242,240,.85)'; c.fillRect(f.x - 0.1 * s, f.y + 0.065 * s, 0.2 * s, Math.max(1, 0.02 * s));
+  }
+  // black shorts: to just above the knee
+  for (const [h, k] of [[Q.hipL, Q.KL], [Q.hipR, Q.KR]]) { const e = lerpP(h, k, 0.62), sp = new Path2D(); sp.moveTo(h.x, h.y); sp.lineTo(e.x, e.y); c.strokeStyle = EDGE; c.lineWidth = 0.19 * s; c.stroke(sp); c.strokeStyle = TEE; c.lineWidth = 0.165 * s; c.stroke(sp); }
+  { const a = add(Q.hipL, [unit(Q.hipL, Q.hipR), 0.05]), b = add(Q.hipR, [unit(Q.hipR, Q.hipL), 0.05]); c.strokeStyle = TEE; c.lineWidth = 0.13 * s; c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke(); }
+  // the tee: plain black, a little loose, short sleeves
+  const nL = unit(Q.SL, Q.SR), nR = { x: -nL.x, y: -nL.y }, wL = unit(Q.hipL, Q.hipR), wR = { x: -wL.x, y: -wL.y };
+  const torso = () => { const AL = add(Q.SL, [nL, 0.06], [up, -0.02]), AR = add(Q.SR, [nR, 0.06], [up, -0.02]), WL = add(Q.hipL, [wL, 0.08], [up, 0.04]), WR = add(Q.hipR, [wR, 0.08], [up, 0.04]), NL = add(Q.N, [nL, 0.06]), NR = add(Q.N, [nR, 0.06]);
+    c.beginPath(); c.moveTo(NL.x, NL.y); let k = add(Q.SL, [up, 0.06], [nL, 0.02]); c.quadraticCurveTo(k.x, k.y, AL.x, AL.y); k = add(lerpP(Q.SL, Q.hipL, 0.5), [nL, 0.06]); c.quadraticCurveTo(k.x, k.y, WL.x, WL.y);
+    k = add(Q.P, [up, -0.05]); c.quadraticCurveTo(k.x, k.y, WR.x, WR.y); k = add(lerpP(Q.SR, Q.hipR, 0.5), [nR, 0.06]); c.quadraticCurveTo(k.x, k.y, AR.x, AR.y); k = add(Q.SR, [up, 0.06], [nR, 0.02]); c.quadraticCurveTo(k.x, k.y, NR.x, NR.y);
+    k = add(Q.N, [up, -0.045]); c.quadraticCurveTo(k.x, k.y, NL.x, NL.y); c.closePath(); };
+  torso(); c.fillStyle = TEE; c.shadowColor = 'rgba(120,190,255,.6)'; c.shadowBlur = 0.08 * s; c.fill(); c.shadowBlur = 0; c.strokeStyle = EDGE; c.lineWidth = Math.max(1, 0.014 * s); c.stroke();
+  // crew neck
+  c.strokeStyle = TEE2; c.lineWidth = Math.max(1, 0.03 * s); c.beginPath(); c.arc(Q.N.x, Q.N.y, 0.055 * s, tilt + 0.2, tilt + Math.PI - 0.2); c.stroke();
+  // arms: short black sleeves, then skin, then the gloves
+  for (const [Sh, E, Hh] of [[Q.SL, Q.EL, Q.HL], [Q.SR, Q.ER, Q.HR]]) {
+    const arm = new Path2D(); arm.moveTo(Sh.x, Sh.y); arm.lineTo(E.x, E.y); arm.lineTo(Hh.x, Hh.y); c.strokeStyle = SKIN_D; c.lineWidth = 0.085 * s; c.stroke(arm); c.strokeStyle = SKIN; c.lineWidth = 0.067 * s; c.stroke(arm);
+    const sl = lerpP(Sh, E, 0.55), sv = new Path2D(); sv.moveTo(Sh.x, Sh.y); sv.lineTo(sl.x, sl.y); c.strokeStyle = EDGE; c.lineWidth = 0.14 * s; c.stroke(sv); c.strokeStyle = TEE; c.lineWidth = 0.12 * s; c.stroke(sv);
+  }
+  for (const side of [0, 1]) { const M = mitt(Q, side), gc = { x: M.H.x + M.ux * 0.02 * s, y: M.H.y + M.uy * 0.02 * s };
+    const sd = (Q.S.x - M.H.x) * -M.uy + (Q.S.y - M.H.y) * M.ux > 0 ? 1 : -1, th = { x: gc.x - M.uy * 0.1 * s * sd - M.ux * 0.035 * s, y: gc.y + M.ux * 0.1 * s * sd - M.uy * 0.035 * s };
+    glowDot(c, gc.x, gc.y, 0.3 * s, '120,190,255', 0.3);
+    const mp = new Path2D(); mp.ellipse(gc.x, gc.y, 0.13 * s, 0.108 * s, M.a, 0, TAU); mp.moveTo(th.x + 0.045 * s, th.y); mp.arc(th.x, th.y, 0.045 * s, 0, TAU);
+    c.strokeStyle = '#4da3ff'; c.lineWidth = 0.032 * s; c.shadowColor = '#4da3ff'; c.shadowBlur = 0.12 * s; c.stroke(mp); c.shadowBlur = 0;
+    const gg = c.createRadialGradient(gc.x - 0.03 * s, gc.y - 0.03 * s, 0, gc.x, gc.y, 0.14 * s); gg.addColorStop(0, '#ffffff'); gg.addColorStop(1, '#c9d6e6'); c.fillStyle = gg; c.fill(mp);
+    c.strokeStyle = '#4da3ff'; c.lineWidth = 0.03 * s; c.beginPath(); c.moveTo(M.H.x - M.ux * 0.08 * s - M.uy * 0.075 * s, M.H.y - M.uy * 0.08 * s + M.ux * 0.075 * s); c.lineTo(M.H.x - M.ux * 0.08 * s + M.uy * 0.075 * s, M.H.y - M.uy * 0.08 * s - M.ux * 0.075 * s); c.stroke(); }
+  // neck and head
+  { const nk = new Path2D(), top = add(Q.Hd, [up, -0.1]); nk.moveTo(Q.N.x, Q.N.y); nk.lineTo(top.x, top.y); c.strokeStyle = SKIN_D; c.lineWidth = 0.09 * s; c.stroke(nk); c.strokeStyle = SKIN; c.lineWidth = 0.072 * s; c.stroke(nk); }
+  c.save(); c.translate(Q.Hd.x, Q.Hd.y); c.rotate(tilt);
+  // ears, then the face
+  c.fillStyle = SKIN_D; for (const sx of [-1, 1]) { c.beginPath(); c.ellipse(sx * hr * 0.92, hr * 0.12, hr * 0.17, hr * 0.24, 0, 0, TAU); c.fill(); }
+  const fg = c.createRadialGradient(-hr * 0.3, -hr * 0.2, hr * 0.1, 0, 0, hr * 1.05); fg.addColorStop(0, '#fbdcc0'); fg.addColorStop(1, SKIN_D);
+  c.fillStyle = fg; c.beginPath(); c.ellipse(0, hr * 0.08, hr * 0.88, hr * 1.0, 0, 0, TAU); c.fill();
+  // eyes: shut while he's blind, then open and glowing blue
+  if (blind) { c.strokeStyle = '#6b4a3a'; c.lineWidth = Math.max(0.9, hr * 0.08); for (const sx of [-0.36, 0.36]) { c.beginPath(); c.arc(sx * hr, -hr * 0.02, hr * 0.15, Math.PI * 0.15, Math.PI * 0.85); c.stroke(); } }
+  else { for (const sx of [-0.36, 0.36]) { c.fillStyle = '#ffffff'; c.beginPath(); c.ellipse(sx * hr, hr * 0.02, hr * 0.17, hr * 0.12, 0, 0, TAU); c.fill();
+      c.fillStyle = EYE; c.shadowColor = EYE; c.shadowBlur = hr * 0.9; c.beginPath(); c.arc(sx * hr, hr * 0.03, hr * 0.1, 0, TAU); c.fill(); c.shadowBlur = 0;
+      c.fillStyle = '#0b1b33'; c.beginPath(); c.arc(sx * hr, hr * 0.03, hr * 0.05, 0, TAU); c.fill(); c.fillStyle = '#fff'; c.beginPath(); c.arc(sx * hr + hr * 0.04, hr * -0.01, hr * 0.025, 0, TAU); c.fill(); } }
+  // brows, a small nose and mouth
+  c.strokeStyle = HAIR_D; c.lineWidth = Math.max(0.8, hr * 0.06); for (const sx of [-0.36, 0.36]) { c.beginPath(); c.moveTo((sx - 0.15) * hr, -hr * 0.24); c.lineTo((sx + 0.15) * hr, -hr * 0.27); c.stroke(); }
+  c.strokeStyle = SKIN_D; c.lineWidth = Math.max(0.7, hr * 0.05); c.beginPath(); c.moveTo(0, hr * 0.12); c.lineTo(-hr * 0.06, hr * 0.32); c.lineTo(hr * 0.03, hr * 0.34); c.stroke();
+  c.strokeStyle = '#b4625a'; c.lineWidth = Math.max(0.8, hr * 0.06); c.beginPath(); c.arc(0, hr * 0.42, hr * 0.15, Math.PI * 0.2, Math.PI * 0.8); c.stroke();
+  // the hair: messy blond, swept over the forehead
+  c.fillStyle = HAIR; c.beginPath(); c.moveTo(-hr * 0.98, hr * 0.05); c.quadraticCurveTo(-hr * 1.1, -hr * 1.05, 0, -hr * 1.18); c.quadraticCurveTo(hr * 1.12, -hr * 1.05, hr * 0.98, hr * 0.0);
+  c.lineTo(hr * 0.82, -hr * 0.28); c.lineTo(hr * 0.6, -hr * 0.2); c.lineTo(hr * 0.42, -hr * 0.42); c.lineTo(hr * 0.15, -hr * 0.26); c.lineTo(-hr * 0.1, -hr * 0.46); c.lineTo(-hr * 0.35, -hr * 0.3); c.lineTo(-hr * 0.6, -hr * 0.44); c.lineTo(-hr * 0.82, -hr * 0.2); c.closePath(); c.fill();
+  c.strokeStyle = 'rgba(184,148,78,.55)'; c.lineWidth = Math.max(0.6, hr * 0.035); for (const [x0, x1] of [[-0.6, -0.2], [-0.1, 0.25], [0.35, 0.7]]) { c.beginPath(); c.moveTo(x0 * hr, -hr * 1.0); c.quadraticCurveTo((x0 + x1) / 2 * hr, -hr * 0.7, x1 * hr, -hr * 0.42); c.stroke(); }
+  c.strokeStyle = 'rgba(255,240,200,.5)'; c.lineWidth = Math.max(0.7, hr * 0.06); c.beginPath(); c.arc(-hr * 0.2, -hr * 0.55, hr * 0.5, Math.PI * 1.15, Math.PI * 1.55); c.stroke();
+  c.restore();
+}
+const SKIN_DRAW = { mitch: drawMitch, juju: drawJuju, ninja: (c, Q, s, n, b) => drawNeon(c, Q, s, n, b, true), classic: (c, Q, s, n, b) => drawNeon(c, Q, s, n, b, false), astro: drawAstro, skel: drawSkel, inferno: drawInferno, phantom: drawPhantom };
 // ---------- balls (looks only: the same size and flight) ----------
 // ---------- balls: the same neon look as the Goalies. A dark core, a few glowing lines, a glowing rim ----------
 const BALL_LOOK = {
@@ -4139,7 +4203,7 @@ function drawBallSkin(c, id, x, y, r, rot) {
 
 
 // ---------- how the Goalie looks in the game (drawing only: the physics joints and the brains are untouched) ----------
-const KIT_GLOW = { juju: '232,255,61', ninja: '255,36,56', classic: '205,236,255', astro: '170,210,255', skel: '125,255,154', inferno: '255,110,20', phantom: '162,107,255' };
+const KIT_GLOW = { mitch: '120,190,255', juju: '232,255,61', ninja: '255,36,56', classic: '205,236,255', astro: '170,210,255', skel: '125,255,154', inferno: '255,110,20', phantom: '162,107,255' };
 function drawBody(pose, now, blind) {
   let kit = curKit(); if (!SKIN_DRAW[kit]) kit = 'classic';
   const s = geo.gw / GW_M, m = p => g2s(p[0] / GW_M, p[1] / GH_M), P = pose.pts, Q = {};
@@ -4606,7 +4670,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.05-2129';
+  var VERSION = '2026.11.05-2305';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess v' + (window.APP_VERSION || '1.00') + ' · build ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
