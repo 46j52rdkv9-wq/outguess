@@ -2720,9 +2720,9 @@ function hideMenu() { app.classList.remove('menu-on'); $('#menu').hidden = true;
 const goalieIQ = br => Math.round((br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total + (br === MY ? oppShots() : 0))) / 15);
 const MENU = { res: null, count: null };
 // ---------- version and what changed (each update goes up by 0.01) ----------
-const APP_VERSION = '1.19';
+const APP_VERSION = '1.20';
 const WHATS_NEW = [
-  'Goals fly off into deep space, shrinking to a speck before they wink out',
+  'Goals fly into space at the speed you hit them: rockets vanish fast, soft ones drift away',
   'The field is out in space now: stars, nebula and a neon grid under glowing lines',
   'Your line shows its whole tail the moment you let go',
 ];
@@ -4292,7 +4292,7 @@ function drawLiveBands(now) {
 // a save: a burst where the glove met the ball
 // ---------- the goal moment: the ball keeps going into the black behind the net, as if it were deep space ----------
 const SPACE_STARS = Array.from({ length: 90 }, (_, i) => ({ x: (i * 0.618034) % 1, y: (i * 0.3819 + i * i * 0.0007) % 1, r: 0.4 + ((i * 7) % 10) / 10 * 1.1, ph: i * 1.7 }));
-const SPACE_MS = 3000;
+const SPACE_MS = 3000, SPACE_Z = 16;
 // the ball carries on the way it was going when it crossed the line: same direction, same speed at first,
 // slowing and shrinking as it falls away into the distance. It stays inside the net's black.
 function spaceStart(key, t0, gx, gy, r0, dir) {
@@ -4304,17 +4304,19 @@ function spaceStart(key, t0, gx, gy, r0, dir) {
   let room = Infinity;
   if (ux > 1e-6) room = Math.min(room, (x1 - A.x) / ux); if (ux < -1e-6) room = Math.min(room, (x0 - A.x) / ux);
   if (uy > 1e-6) room = Math.min(room, (y1 - A.y) / uy); if (uy < -1e-6) room = Math.min(room, (y0 - A.y) / uy);
-  // it keeps its speed while there is room; heading for a post, it travels a little way toward it and fades out there
-  const L = Math.max(0, Math.min(v0 * SPACE_MS / 2.2, geo.gw * 0.45, Math.max(room, geo.gw * 0.08)));
-  G.space = { key, t0, gx, gy, r0, ux, uy, L, vx: (A.x + ux * L - geo.gx0) / geo.gw, vy: (geo.gyb - (A.y + uy * L)) / geo.gh };
+  // it carries on at the speed you hit it: a hard shot flies off fast and is gone quickly, a soft one drifts away.
+  // tau is how quickly it travels away into the distance; at the start it moves across the screen at exactly the speed it arrived
+  const T = dir && dir.T ? dir.T : 900, L = Math.max(0, Math.min(v0 * clamp(T * 0.22, 110, 300), geo.gw * 0.45, Math.max(room, geo.gw * 0.08))), tau = clamp(L / Math.max(0.05, v0), 80, 320);
+  G.space = { key, t0, gx, gy, r0, ux, uy, L, tau, dur: tau * (SPACE_Z - 1), vx: (A.x + ux * L - geo.gx0) / geo.gw, vy: (geo.gyb - (A.y + uy * L)) / geo.gh };
 }
 // where the ball is on its way out
 function spaceBall(now) {
   const S0 = G.space; if (!S0) return null;
   // it flies away from you into depth: the farther it gets, the smaller it is and the slower it seems to move,
   // until it's a speck that winks out
-  const q = clamp((now - S0.t0) / SPACE_MS, 0, 1), A = g2s(S0.gx, S0.gy), V = g2s(S0.vx, S0.vy), ZF = 18;
-  const zOf = qq => 1 + (ZF - 1) * Math.pow(qq, 2.2), off = z => (1 - 1 / z) / (1 - 1 / ZF);
+  const t = Math.max(0, now - S0.t0), q = clamp(t / S0.dur, 0, 1), A = g2s(S0.gx, S0.gy), V = g2s(S0.vx, S0.vy), ZF = SPACE_Z;
+  // depth grows steadily with time, so its size and its movement on screen both fall off the way a real ball's would
+  const zOf = qq => 1 + (ZF - 1) * qq, off = z => 1 - 1 / z;
   const at = qq => { const k = off(zOf(qq)); return { x: A.x + S0.ux * S0.L * k, y: A.y + S0.uy * S0.L * k }; };
   const z = zOf(q), p = at(q); return { ...p, r: S0.r0 / z, a: q < 0.85 ? 1 : 1 - (q - 0.85) / 0.15, q, at, V };
 }
@@ -4338,7 +4340,7 @@ function spaceLayers() {
   return SPACE_L;
 }
 function drawSpace(now) {
-  const S0 = G.space, el = S0 ? now - S0.t0 : 1e9; if (S0 && el > SPACE_MS + 900) G.space = null;
+  const S0 = G.space, el = S0 ? now - S0.t0 : 1e9; if (S0 && el > S0.dur + 900) G.space = null;
   const boost = el >= 0 && el < 2600 ? clamp(el / 400, 0, 1) * clamp(1 - (el - 1900) / 700, 0, 1) : 0;
   const { gx0, gyt, gyb, gw, gh } = geo, gx1 = gx0 + gw, L = spaceLayers();
   // where the eye is: the ball while it flies, otherwise the Goalie's spot
@@ -4432,7 +4434,7 @@ function demoFrame(now) {
     if (D.end) {
       const k = Math.min(1, (now - D.end) / 600), kk = ease(k), saved = D.gap <= 0;
       if (saved) { const side = Math.sign(D.ev.tx * GW_M - D.R.s.X[0]) || 1; out.ball = { x: E.x + side * geo.gw * 0.3 * kk, y: E.y + (by0 - E.y) * 0.4 * kk - Math.sin(k * Math.PI) * 30, r: r0 * lerp(0.42, 0.7, kk), rot: el * 25, a: 1 }; }
-      else { { const fr = clamp((geo.gyb - E.y) / Math.max(1, S0.y - E.y), 0.1, 1), vx = E.x - Cp.x, vy = (E.y - Cp.y) * fr; spaceStart('demo' + D.t0, D.end, D.ev.tx, D.ev.ty, r0 * 0.42, { x: vx, y: vy, v: 2 * Math.hypot(vx, vy) / (fl * 1000) }); } out.ball = { x: E.x, y: E.y, r: r0 * 0.42, rot: el * 25, a: 0 }; out.behind = true; }
+      else { { const vx = E.x - Cp.x, vy = E.y - Cp.y; spaceStart('demo' + D.t0, D.end, D.ev.tx, D.ev.ty, r0 * 0.42, { x: vx, y: vy, v: 2 * Math.hypot(vx, vy) / (fl * 1000), T: fl * 1000 }); } out.ball = { x: E.x, y: E.y, r: r0 * 0.42, rot: el * 25, a: 0 }; out.behind = true; }
       out.ball.a = clamp(1 - (now - D.end - 1100) / 500, 0, 1); out.shadow = null;
       out.cap = D.cap + (saved ? ' · Saved' : ' · Goal');
       if (now - D.end > 1900) { DEMO.cur = null; DEMO.next = now + 1300; }
@@ -4560,7 +4562,7 @@ function frameBody(now) {
     else {
       G.tail = null;
       const k = Math.min(1, (e - sh.T) / 600), kk = ease(k), dirx = fp.ux * 100, diry = fp.uy * 100, dl = 100;
-      if (sh.outcome === 'goal') { { const fr = clamp((geo.gyb - E.y) / Math.max(1, sh.sy - E.y), 0.1, 1), vx = fp.ux, vy = fp.uy * fr; spaceStart(sh.t0, sh.t0 + sh.T, sh.gx, sh.gy, geo.r0 * 0.42, { x: vx, y: vy, v: fp.tot / sh.T * Math.hypot(vx, vy) }); } rot = sh.T / 40 + k * 3; ba = 0; }
+      if (sh.outcome === 'goal') { { const vx = fp.ux, vy = fp.uy; spaceStart(sh.t0, sh.t0 + sh.T, sh.gx, sh.gy, geo.r0 * 0.42, { x: vx, y: vy, v: fp.tot / sh.T * Math.hypot(vx, vy), T: sh.T }); } rot = sh.T / 40 + k * 3; ba = 0; }
       else if (sh.outcome === 'wide' || sh.outcome === 'over') { bx = E.x + dirx / dl * 120 * k; by = E.y + diry / dl * 120 * k; br = geo.r0 * lerp(0.42, 0.3, k); ba = 1 - k; }
       else { const side = Math.sign(sh.gx * GW_M - pose.x) || 1; bx = E.x + side * geo.gw * 0.35 * kk; by = E.y + (geo.ballY - E.y) * 0.55 * kk - Math.sin(k * Math.PI) * 40; br = geo.r0 * lerp(0.42, 0.75, kk); rot = sh.T / 40 - k * 4; }
     }
@@ -4637,7 +4639,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.05-1638';
+  var VERSION = '2026.11.05-1848';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess v' + (window.APP_VERSION || '1.00') + ' · build ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
