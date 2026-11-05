@@ -2720,11 +2720,12 @@ function hideMenu() { app.classList.remove('menu-on'); $('#menu').hidden = true;
 const goalieIQ = br => Math.round((br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total + (br === MY ? oppShots() : 0))) / 15);
 const MENU = { res: null, count: null };
 // ---------- version and what changed (each update goes up by 0.01) ----------
-const APP_VERSION = '1.13';
+const APP_VERSION = '1.14';
 const WHATS_NEW = [
-  'New Goalie: Juju. Find him in the Store',
-  'Your swipe line now dissolves into space as it reaches the goal',
-  'No more net: the goal opens onto deep space, stars and all',
+  'Neon goal: glowing posts and a wireframe opening onto deep space',
+  'Deeper space: drifting layers of stars, the odd shooting star, a ripple of light on every goal',
+  'The ball rides your swipe line exactly, and the line fades out toward where it lands',
+  'The ball leaves a comet tail and glows on the grass. Saves burst with sparks',
 ];
 window.APP_VERSION = APP_VERSION;
 function showWhatsNew() {
@@ -3794,11 +3795,14 @@ function paintBackdrop() {
   const wear = k.createRadialGradient(cx, gyb + depth * 0.1, 0, cx, gyb + depth * 0.1, gw * 0.42); wear.addColorStop(0, 'rgba(170,150,90,.10)'); wear.addColorStop(1, 'rgba(170,150,90,0)');
   k.save(); k.translate(cx, gyb + depth * 0.1); k.scale(1, 0.32); k.translate(-cx, -(gyb + depth * 0.1)); k.fillStyle = wear; k.fillRect(cx - gw * 0.5, gyb + depth * 0.1 - gw * 0.5, gw, gw); k.restore();
   const pl = k.createRadialGradient(cx, gyb + 10, 0, cx, gyb + 10, W * 0.9); pl.addColorStop(0, rgba(C.chalk, 0.1)); pl.addColorStop(0.5, rgba(C.chalk, 0.03)); pl.addColorStop(1, rgba(C.chalk, 0)); k.fillStyle = pl; k.fillRect(0, horizon, W, H - horizon);
-  // painted lines: goal line and six-yard box
-  k.strokeStyle = rgba(C.chalk, 0.55); k.lineWidth = 2; k.lineJoin = 'round';
-  k.beginPath(); k.moveTo(0, gyb); k.lineTo(W, gyb); k.stroke();
-  const sy = gyb + depth * 0.3;
-  k.beginPath(); k.moveTo(cx - gw * 0.86, gyb); k.lineTo(cx - gw * 1.0, sy); k.lineTo(cx + gw * 1.0, sy); k.lineTo(cx + gw * 0.86, gyb); k.stroke();
+  // night turf: darker, with a faint gloss band in front of the goal
+  k.fillStyle = 'rgba(2,9,9,.38)'; k.fillRect(0, horizon, W, H - horizon);
+  const gl = k.createLinearGradient(0, gyb, 0, gyb + depth * 0.6); gl.addColorStop(0, 'rgba(190,230,220,.06)'); gl.addColorStop(1, 'rgba(190,230,220,0)'); k.fillStyle = gl; k.fillRect(0, gyb, W, depth * 0.6);
+  // painted lines that glow: goal line and six-yard box
+  const sy = gyb + depth * 0.3, lines = () => { k.beginPath(); k.moveTo(0, gyb); k.lineTo(W, gyb); k.moveTo(cx - gw * 0.86, gyb); k.lineTo(cx - gw * 1.0, sy); k.lineTo(cx + gw * 1.0, sy); k.lineTo(cx + gw * 0.86, gyb); };
+  k.lineJoin = 'round'; k.lineCap = 'round';
+  k.strokeStyle = 'rgba(205,236,255,.10)'; k.lineWidth = 7; lines(); k.stroke();
+  k.strokeStyle = rgba(C.chalk, 0.75); k.lineWidth = 1.8; k.shadowColor = 'rgba(205,236,255,.8)'; k.shadowBlur = 8; lines(); k.stroke(); k.shadowBlur = 0;
   // shadow of the net and frame on the grass
   k.fillStyle = rgba(C.night, 0.35); k.beginPath(); k.moveTo(geo.gx0, gyb); k.lineTo(geo.gx0 + gw, gyb); k.lineTo(geo.gx0 + gw + 14, gyb + 9); k.lineTo(geo.gx0 + 10, gyb + 9); k.closePath(); k.fill();
   // vignette
@@ -3877,9 +3881,14 @@ function drawGoal(now, front) {
   } else {
     // the frame sits just OUTSIDE the physics box: the inside edge of each post and of the bar is the wall the Goalie hits
     const lw = Math.max(4, gw * 0.018), o = lw / 2;
-    g.strokeStyle = C.chalk; g.lineWidth = lw; g.lineCap = 'square'; g.shadowColor = rgba(C.chalk, 0.4); g.shadowBlur = 10;
-    g.beginPath(); g.moveTo(gx0 - o, gyb); g.lineTo(gx0 - o, gyt - o); g.lineTo(gx1 + o, gyt - o); g.lineTo(gx1 + o, gyb); g.stroke();
-    g.shadowBlur = 0; g.lineCap = 'butt';
+    // neon tubes: a wide soft halo, then a bright core with a hot white centre line
+    const frame = () => { g.beginPath(); g.moveTo(gx0 - o, gyb); g.lineTo(gx0 - o, gyt - o); g.lineTo(gx1 + o, gyt - o); g.lineTo(gx1 + o, gyb); };
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    g.strokeStyle = 'rgba(205,236,255,.06)'; g.lineWidth = lw * 4.2; frame(); g.stroke();
+    g.strokeStyle = 'rgba(205,236,255,.12)'; g.lineWidth = lw * 2.4; frame(); g.stroke();
+    g.strokeStyle = '#dff1ff'; g.lineWidth = lw; g.shadowColor = 'rgba(190,230,255,.95)'; g.shadowBlur = 16; frame(); g.stroke(); g.shadowBlur = 0;
+    g.strokeStyle = '#ffffff'; g.lineWidth = Math.max(1, lw * 0.32); frame(); g.stroke();
+    g.lineCap = 'butt'; g.lineJoin = 'miter';
   }
 }
 function drawHeat(q, land, peak, alpha) {
@@ -4164,6 +4173,7 @@ function drawBody(pose, now, blind) {
   g.fillStyle = rgba(C.night, 0.5); g.beginPath(); g.ellipse(sp.x, geo.gyb + 2, sw0, 4.5, 0, 0, 7); g.fill();
   const gg = g.createRadialGradient(sp.x, geo.gyb, 0, sp.x, geo.gyb, sw0 * 1.6); gg.addColorStop(0, `rgba(${glow},0.16)`); gg.addColorStop(1, `rgba(${glow},0)`);
   g.fillStyle = gg; g.beginPath(); g.ellipse(sp.x, geo.gyb, sw0 * 1.6, 9, 0, 0, 7); g.fill();
+  { const rg = g.createRadialGradient(sp.x, geo.gyb + 4, 0, sp.x, geo.gyb + 4, s * 1.1); rg.addColorStop(0, `rgba(${glow},0.13)`); rg.addColorStop(1, `rgba(${glow},0)`); g.save(); g.translate(sp.x, geo.gyb + 4); g.scale(1, 0.22); g.translate(-sp.x, -(geo.gyb + 4)); g.fillStyle = rg; g.beginPath(); g.arc(sp.x, geo.gyb + 4, s * 1.1, 0, 7); g.fill(); g.restore(); }
   g.save(); g.beginPath(); g.rect(geo.gx0, geo.gyt, geo.gw, geo.gh + 12); g.clip();
   // the phantom leaves afterimages of where it just was
   if (kit === 'phantom') { G.phHist = G.phHist || []; G.phHist.push(Q); if (G.phHist.length > 7) G.phHist.shift(); } else G.phHist = null;
@@ -4174,7 +4184,74 @@ function drawBody(pose, now, blind) {
 function drawBall(x, y, r, rot, alpha = 1, id) {
   g.save(); g.globalAlpha *= alpha; drawBallSkin(g, id || curBall(), x, y, r, rot); g.restore();
 }
-function shadow(x, y, r, a = 0.4) { g.fillStyle = rgba(C.night, a); g.beginPath(); g.ellipse(x, y, r * 1.1, r * 0.35, 0, 0, 7); g.fill(); }
+function shadow(x, y, r, a = 0.4) {
+  g.fillStyle = rgba(C.night, a); g.beginPath(); g.ellipse(x, y, r * 1.1, r * 0.35, 0, 0, 7); g.fill();
+  // the ball's own glow, reflected on the grass
+  const L = BALL_LOOK[curBall()] || BALL_LOOK.soccer, col = L.glow.replace(/[\d.]+\)$/, '0.22)');
+  const gr = g.createRadialGradient(x, y, 0, x, y, r * 2.4); gr.addColorStop(0, col); gr.addColorStop(1, L.glow.replace(/[\d.]+\)$/, '0)'));
+  g.save(); g.translate(x, y); g.scale(1, 0.32); g.translate(-x, -y); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r * 2.4, 0, 7); g.fill(); g.restore();
+}
+// The path is built once per shot from the recorded swipe (the same smoothed line you saw), then a short bridge
+// leaves the end of the line in its own direction and curves into the landing spot. Looks only: where the ball
+// lands, and everything the brains and physics use, is unchanged.
+function flightPath(sh) {
+  if (sh.fp) return sh.fp;
+  const E = g2s(sh.gx, sh.gy), S0 = { x: sh.sx, y: sh.sy }, P = [];
+  let swN = 0;
+  if (sh.trace && sh.trace.length >= 3) {
+    const sm = trailSmooth(sh.trace), n = sm.length, off = { x: S0.x - sm[0].x, y: S0.y - sm[0].y };
+    for (let i = 0; i < n; i++) { const w = 1 - i / (n - 1); P.push({ x: sm[i].x + off.x * w, y: sm[i].y + off.y * w }); }
+    // the bridge always heads forward to the landing spot: drop any of the line that already rose past it
+    while (P.length > 2 && P[P.length - 1].y < E.y + 12) P.pop();
+    swN = P.length;
+    const A = P[P.length - 1], B = P[Math.max(0, P.length - 5)], tx = A.x - B.x, ty = A.y - B.y, tl = Math.hypot(tx, ty) || 1, D = Math.hypot(E.x - A.x, E.y - A.y);
+    const C = { x: A.x + tx / tl * D * 0.5, y: A.y + ty / tl * D * 0.5 };
+    for (let k = 1; k <= 28; k++) { const u = k / 28; P.push({ x: (1 - u) * (1 - u) * A.x + 2 * (1 - u) * u * C.x + u * u * E.x, y: (1 - u) * (1 - u) * A.y + 2 * (1 - u) * u * C.y + u * u * E.y }); }
+  } else {
+    const dd = Math.hypot(E.x - S0.x, E.y - S0.y), Cp = { x: (S0.x + E.x) / 2 + sh.curve * dd * 1.4, y: (S0.y + E.y) / 2 - sh.gy * geo.gh * 0.5 };
+    for (let k = 0; k <= 40; k++) { const u = k / 40; P.push({ x: (1 - u) * (1 - u) * S0.x + 2 * (1 - u) * u * Cp.x + u * u * E.x, y: (1 - u) * (1 - u) * S0.y + 2 * (1 - u) * u * Cp.y + u * u * E.y }); }
+  }
+  const cum = [0]; for (let i = 1; i < P.length; i++) cum.push(cum[i - 1] + Math.hypot(P[i].x - P[i - 1].x, P[i].y - P[i - 1].y));
+  const n = P.length, Z = P[Math.max(0, n - 4)], ux0 = P[n - 1].x - Z.x, uy0 = P[n - 1].y - Z.y, ul = Math.hypot(ux0, uy0) || 1;
+  sh.fp = { P, cum, tot: cum[n - 1] || 1, swLen: swN ? cum[swN - 1] : 0, ux: ux0 / ul, uy: uy0 / ul };
+  return sh.fp;
+}
+function pathAt(fp, q) {
+  const d = clamp(q, 0, 1) * fp.tot, C = fp.cum; let lo = 0, hi = C.length - 1;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (C[m] < d) lo = m; else hi = m; }
+  const f = C[hi] > C[lo] ? (d - C[lo]) / (C[hi] - C[lo]) : 0; return { x: lerp(fp.P[lo].x, fp.P[hi].x, f), y: lerp(fp.P[lo].y, fp.P[hi].y, f) };
+}
+// after you let go, the line follows the ball along its path and fades darker toward where it will land
+function drawFlightLine(sh, alpha, col) {
+  const fp = flightPath(sh), L = TRAIL_LOOK, e = performance.now() - sh.t0, q = clamp(e / sh.T, 0, 1);
+  const dEnd = Math.max(fp.swLen, q * fp.tot), P = [], D = [];
+  for (let i = 0; i < fp.P.length && fp.cum[i] <= dEnd; i++) { P.push(fp.P[i]); D.push(fp.cum[i]); }
+  if (D[D.length - 1] < dEnd) { P.push(pathAt(fp, dEnd / fp.tot)); D.push(dEnd); }
+  const n = P.length; if (n < 2 || alpha <= 0) return;
+  const swL = fp.swLen || fp.tot * 0.6, wAt = d => d <= swL ? lerp(L.w0, L.w1, d / swL) : lerp(L.w1, L.w1 * 0.5, clamp((d - swL) / Math.max(1, fp.tot - swL), 0, 1));
+  const Lt = [], Rt = [];
+  for (let i = 0; i < n; i++) { const a = P[Math.max(0, i - 1)], b = P[Math.min(n - 1, i + 1)]; let tx = b.x - a.x, ty = b.y - a.y; const l = Math.hypot(tx, ty) || 1; tx /= l; ty /= l; const w = wAt(D[i]) / 2; Lt.push([P[i].x - ty * w, P[i].y + tx * w]); Rt.push([P[i].x + ty * w, P[i].y - tx * w]); }
+  g.save(); g.globalAlpha *= Math.min(1, alpha);
+  g.beginPath(); g.moveTo(Lt[0][0], Lt[0][1]); for (let i = 1; i < n; i++) g.lineTo(Lt[i][0], Lt[i][1]);
+  for (let i = n - 1; i >= 0; i--) g.lineTo(Rt[i][0], Rt[i][1]);
+  { const a0 = Math.atan2(P[1].y - P[0].y, P[1].x - P[0].x); g.arc(P[0].x, P[0].y, L.w0 / 2, a0 + Math.PI / 2, a0 + Math.PI * 1.5); }
+  g.closePath();
+  // darker and darker toward the landing spot
+  const y0 = sh.sy, E = fp.P[fp.P.length - 1], ySw = fp.swLen ? pathAt(fp, fp.swLen / fp.tot).y : lerp(y0, E.y, 0.6), span = (y0 - E.y) || 1, f = clamp((y0 - ySw) / span, 0.05, 0.95);
+  const gr = g.createLinearGradient(0, y0, 0, E.y); gr.addColorStop(0, rgba(col, 1)); gr.addColorStop(f * 0.6, rgba(col, 0.9)); gr.addColorStop(f, rgba(col, 0.55)); gr.addColorStop(1, rgba(col, 0));
+  g.fillStyle = gr; g.shadowColor = col; g.shadowBlur = L.glow; g.fill(); g.shadowBlur = 0;
+  g.restore();
+}
+function cometTail(sh, e) {
+  const L = BALL_LOOK[curBall()] || BALL_LOOK.soccer, q0 = Math.min(1, e / sh.T), fp = flightPath(sh);
+  g.save(); g.globalCompositeOperation = 'lighter';
+  for (let k = 10; k >= 1; k--) {
+    const q = Math.max(0, q0 - k * 0.022); if (q <= 0) continue;
+    const p = pathAt(fp, q), r = lerp(geo.r0, geo.r0 * 0.42, q) * (1 - k / 12);
+    g.fillStyle = L.glow.replace(/[\d.]+\)$/, (0.26 * (1 - k / 11)).toFixed(3) + ')'); g.beginPath(); g.arc(p.x, p.y, r, 0, 7); g.fill();
+  }
+  g.restore();
+}
 function drawLiveBands(now) {
   const R = params().R, half = Math.min(120, W * 0.32), cx = clamp(sw.s.x, half + 44, W - half - 44);
   g.font = monoF(10); g.textBaseline = 'middle';
@@ -4217,20 +4294,56 @@ function spaceBall(now) {
   const at = ee => ({ x: A.x + S0.ux * S0.L * ee, y: A.y + S0.uy * S0.L * ee });
   const p = at(e); return { ...p, r: S0.r0 * (1 - 0.45 * e), a: Math.pow(1 - q, 1.6), q, at: qq => at(qq), V };
 }
-// the stars are always there, faint; a goal wakes them up for a moment. Then the goal's 3D frame on top
+// deep space behind the goal: three layers of stars, drawn once and reused. Near stars move more than far ones
+let SPACE_L = null;
+function spaceLayers() {
+  const { gw, gh } = geo, key = Math.round(gw) + 'x' + Math.round(gh) + 'x' + DPR;
+  if (SPACE_L && SPACE_L.key === key) return SPACE_L;
+  let seed = 11; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const mk = (n, r0, r1, a0, a1, tint) => { const w = Math.ceil(gw * 1.3), h = Math.ceil(gh * 1.3), cv = document.createElement('canvas'); cv.width = Math.ceil(w * DPR); cv.height = Math.ceil(h * DPR); const c = cv.getContext('2d'); c.scale(DPR, DPR);
+    for (let i = 0; i < n; i++) { const x = rnd() * w, y = rnd() * h, r = r0 + rnd() * (r1 - r0), a = a0 + rnd() * (a1 - a0), t = tint[Math.floor(rnd() * tint.length)];
+      if (r > 1.1) { const gr = c.createRadialGradient(x, y, 0, x, y, r * 3); gr.addColorStop(0, `rgba(${t},${a * 0.5})`); gr.addColorStop(1, `rgba(${t},0)`); c.fillStyle = gr; c.beginPath(); c.arc(x, y, r * 3, 0, 7); c.fill(); }
+      c.fillStyle = `rgba(${t},${a})`; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); }
+    return { cv, w, h }; };
+  const k = Math.max(0.7, gw / 420), white = ['235,242,255'], mix = ['235,242,255', '200,220,255', '255,236,214'];
+  SPACE_L = { key, layers: [
+    { ...mk(Math.round(gw * gh / 700), 0.35 * k, 0.75 * k, 0.25, 0.6, white), par: 0.012, drift: 0.0015, tw: 0.12 },
+    { ...mk(Math.round(gw * gh / 2200), 0.6 * k, 1.1 * k, 0.4, 0.8, mix), par: 0.03, drift: 0.003, tw: 0.2 },
+    { ...mk(Math.round(gw * gh / 9000) + 3, 1.0 * k, 1.7 * k, 0.6, 1, mix), par: 0.06, drift: 0.006, tw: 0.3 }
+  ] };
+  return SPACE_L;
+}
 function drawSpace(now) {
   const S0 = G.space, el = S0 ? now - S0.t0 : 1e9; if (S0 && el > SPACE_MS + 900) G.space = null;
   const boost = el >= 0 && el < 2600 ? clamp(el / 400, 0, 1) * clamp(1 - (el - 1900) / 700, 0, 1) : 0;
-  const { gx0, gyt, gyb, gw, gh } = geo, gx1 = gx0 + gw;
+  const { gx0, gyt, gyb, gw, gh } = geo, gx1 = gx0 + gw, L = spaceLayers();
+  // where the eye is: the ball while it flies, otherwise the Goalie's spot
+  const fx = (G.space ? g2s(S0.gx, S0.gy).x : G.focusX != null ? G.focusX : gx0 + gw / 2) - (gx0 + gw / 2);
   g.save(); g.beginPath(); g.rect(gx0, gyt, gw, gh); g.clip();
   if (boost > 0) { const V = g2s(clamp(S0.vx, 0.15, 0.85), clamp(S0.vy, 0.2, 0.8)), neb = (x, y, r, rgb, a) => { const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(${rgb},${a})`); gr.addColorStop(1, `rgba(${rgb},0)`); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); };
     neb(V.x, V.y, gw * 0.42, '90,70,200', 0.26 * boost); neb(V.x + gw * 0.12, V.y - gh * 0.15, gw * 0.25, '60,150,220', 0.16 * boost); }
-  for (const st of SPACE_STARS) { const tw = 0.5 + 0.5 * Math.sin(now / 900 + st.ph); g.fillStyle = `rgba(235,242,255,${(0.12 + 0.18 * tw) * (1 - boost) + boost * (0.35 + 0.65 * tw)})`; g.beginPath(); g.arc(gx0 + st.x * gw, gyt + st.y * gh, st.r * Math.max(0.7, gw / 460), 0, 7); g.fill(); }
+  for (const ly of L.layers) {
+    const ox = ((now * ly.drift) % ly.w), px = -fx * ly.par, a = (1 - ly.tw / 2 + ly.tw / 2 * Math.sin(now / 1300 + ly.par * 100)) * (0.75 + 0.25 * boost);
+    g.globalAlpha = clamp(a, 0, 1);
+    for (const dx of [0, ly.w]) g.drawImage(ly.cv, gx0 - gw * 0.15 + px - ox + dx, gyt - gh * 0.15, ly.w, ly.h);
+  }
+  g.globalAlpha = 1;
+  // a ripple of light spreading through the stars from where the ball went in
+  if (S0 && el >= 0 && el < 1400) { const A = g2s(S0.gx, S0.gy), k = el / 1400, R = gw * 0.08 + gw * 0.9 * (1 - Math.pow(1 - k, 2)), w = gw * 0.05;
+    const gr = g.createRadialGradient(A.x, A.y, Math.max(0, R - w), A.x, A.y, R + w); gr.addColorStop(0, 'rgba(190,215,255,0)'); gr.addColorStop(0.5, `rgba(190,215,255,${0.22 * (1 - k)})`); gr.addColorStop(1, 'rgba(190,215,255,0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(A.x, A.y, R + w, 0, 7); g.fill(); }
+  // now and then a shooting star crosses the dark
+  if (!G.shoot && now > (G.shootNext || (G.shootNext = now + 5000 + Math.random() * 7000))) G.shoot = { t0: now, x: gx0 + gw * (0.15 + Math.random() * 0.7), y: gyt + gh * (0.1 + Math.random() * 0.35), dx: (Math.random() < 0.5 ? -1 : 1) * gw * (0.35 + Math.random() * 0.2), dy: gh * (0.2 + Math.random() * 0.2) };
+  if (G.shoot) { const T = (now - G.shoot.t0) / 750; if (T >= 1) { G.shoot = null; G.shootNext = now + 9000 + Math.random() * 9000; }
+    else { const h = G.shoot, e = 1 - Math.pow(1 - T, 2), hx = h.x + h.dx * e, hy = h.y + h.dy * e, tx = h.x + h.dx * Math.max(0, e - 0.22), ty = h.y + h.dy * Math.max(0, e - 0.22), fa = Math.sin(T * Math.PI);
+      const gr = g.createLinearGradient(tx, ty, hx, hy); gr.addColorStop(0, 'rgba(235,242,255,0)'); gr.addColorStop(1, `rgba(235,242,255,${0.85 * fa})`); g.strokeStyle = gr; g.lineWidth = 1.6; g.lineCap = 'round'; g.beginPath(); g.moveTo(tx, ty); g.lineTo(hx, hy); g.stroke(); } }
   g.restore();
-  // the 3D frame: the back of the goal, its roof and its sides
+  // the 3D frame, as a faint glowing wireframe: the back of the goal, its roof and its sides
   const inset = gw * 0.05, bt = gyt - gh * 0.12, bb = gyb - gh * 0.16;
   const sb = g.createLinearGradient(0, gyt, 0, gyt + gh * 0.22); sb.addColorStop(0, 'rgba(0,0,0,.55)'); sb.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = sb; g.fillRect(gx0, gyt, gw, gh * 0.22);
-  g.strokeStyle = rgba(C.chalk, 0.3); g.lineWidth = 1; g.beginPath(); g.moveTo(gx0, gyt); g.lineTo(gx0 + inset, bt); g.lineTo(gx1 - inset, bt); g.lineTo(gx1, gyt); g.moveTo(gx0 + inset, bt); g.lineTo(gx0 + inset, bb); g.lineTo(gx0, gyb); g.moveTo(gx1 - inset, bt); g.lineTo(gx1 - inset, bb); g.lineTo(gx1, gyb); g.moveTo(gx0 + inset, bb); g.lineTo(gx1 - inset, bb); g.stroke();
+  const wire = () => { g.beginPath(); g.moveTo(gx0, gyt); g.lineTo(gx0 + inset, bt); g.lineTo(gx1 - inset, bt); g.lineTo(gx1, gyt); g.moveTo(gx0 + inset, bt); g.lineTo(gx0 + inset, bb); g.lineTo(gx0, gyb); g.moveTo(gx1 - inset, bt); g.lineTo(gx1 - inset, bb); g.lineTo(gx1, gyb); g.moveTo(gx0 + inset, bb); g.lineTo(gx1 - inset, bb); };
+  g.strokeStyle = 'rgba(190,225,255,.08)'; g.lineWidth = 4; wire(); g.stroke();
+  g.strokeStyle = 'rgba(215,238,255,.42)'; g.lineWidth = 1; g.shadowColor = 'rgba(190,225,255,.9)'; g.shadowBlur = 6; wire(); g.stroke(); g.shadowBlur = 0;
 }
 function drawSpaceBall(now, rot) {
   const B = spaceBall(now); if (!B || B.a <= 0.01) return;
@@ -4240,11 +4353,20 @@ function drawSpaceBall(now, rot) {
   g.restore();
 }
 function drawFlash(now) {
-  const F = G.flash; if (!F) return; const t = (now - F.t0) / 450; if (t >= 1) { G.flash = null; return; }
-  const p = g2s(F.x, F.y), r = 8 + 44 * ease(t);
-  g.save(); g.globalAlpha = 1 - t; g.strokeStyle = C.chalk; g.lineWidth = 3 * (1 - t) + 1; g.shadowColor = C.cool; g.shadowBlur = 16; g.lineCap = 'round';
-  g.beginPath(); g.arc(p.x, p.y, r, 0, 7); g.stroke();
-  for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + 0.3; g.beginPath(); g.moveTo(p.x + Math.cos(a) * r * 0.5, p.y + Math.sin(a) * r * 0.5); g.lineTo(p.x + Math.cos(a) * r * 0.85, p.y + Math.sin(a) * r * 0.85); g.stroke(); }
+  const F = G.flash; if (!F) return; const t = (now - F.t0) / 700; if (t >= 1) { G.flash = null; return; }
+  const p = g2s(F.x, F.y), kit = SKIN_DRAW[curKit()] ? curKit() : 'classic', rgb = KIT_GLOW[kit] || '205,236,255';
+  if (!F.sp) { let sd = Math.floor(F.t0) % 997 + 1; const rnd = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; }; F.sp = Array.from({ length: 16 }, () => ({ a: rnd() * Math.PI * 2, v: 40 + rnd() * 70, r: 1 + rnd() * 1.8, w: rnd() < 0.35 })); }
+  g.save(); g.lineCap = 'round';
+  // the burst of light where it hit the glove
+  const k = Math.min(1, t / 0.25), fl = g.createRadialGradient(p.x, p.y, 0, p.x, p.y, 34); fl.addColorStop(0, `rgba(255,255,255,${0.8 * (1 - k)})`); fl.addColorStop(0.4, `rgba(${rgb},${0.5 * (1 - k)})`); fl.addColorStop(1, `rgba(${rgb},0)`);
+  g.fillStyle = fl; g.beginPath(); g.arc(p.x, p.y, 34, 0, 7); g.fill();
+  // the shockwave: a white ring racing out, a coloured one behind it
+  const e = 1 - Math.pow(1 - Math.min(1, t / 0.6), 3), a = 1 - Math.min(1, t / 0.6);
+  g.strokeStyle = `rgba(${rgb},${0.6 * a})`; g.lineWidth = 6 * a + 1; g.beginPath(); g.arc(p.x, p.y, 6 + 40 * e * 0.85, 0, 7); g.stroke();
+  g.strokeStyle = `rgba(255,255,255,${0.95 * a})`; g.lineWidth = 2.6 * a + 0.8; g.shadowColor = `rgb(${rgb})`; g.shadowBlur = 12; g.beginPath(); g.arc(p.x, p.y, 8 + 48 * e, 0, 7); g.stroke(); g.shadowBlur = 0;
+  // sparks flying off and slowing, in the Goalie's colour with a few white ones
+  for (const sp of F.sp) { const d = sp.v * (1 - Math.pow(1 - t, 2.4)), x = p.x + Math.cos(sp.a) * d, y = p.y + Math.sin(sp.a) * d + 22 * t * t, al = 1 - t;
+    g.fillStyle = sp.w ? `rgba(255,255,255,${al})` : `rgba(${rgb},${al})`; g.beginPath(); g.arc(x, y, sp.r * (1 - t * 0.5), 0, 7); g.fill(); }
   g.restore();
 }
 // standing in goal: a little bounce on its toes and a glove clap now and then (looks only: the physics takes over at the read)
@@ -4365,7 +4487,7 @@ function drawReplay(sh, alpha) {
   g.save(); g.globalAlpha = alpha;
   // your swipe fades out as the ball flies, leaving a faint trace on the result
   const age = (performance.now() - sh.t0) / 1000;
-  drawTrail(sh.trace, G.state === 'result' ? 0.5 / alpha : clamp(1.15 - age * 1.2, 0.5, 1) / alpha, G.mode === 'online' && !G.mine ? '#6fd3ff' : null);
+  drawFlightLine(sh, G.state === 'result' ? 0.5 / alpha : clamp(1.15 - age * 0.9, 0.55, 1) / alpha, G.mode === 'online' && !G.mine ? '#6fd3ff' : S.trail || C.sodium);
   // (the read point and blindfold markers are gone: players see what happened, not how it works)
   g.restore();
 }
@@ -4407,17 +4529,18 @@ function frameBody(now) {
     const e = now - sh.t0, q = Math.min(1, e / sh.T), S0 = { x: sh.sx, y: sh.sy };
     const E = g2s(sh.gx, sh.gy);
     const dd = Math.hypot(E.x - S0.x, E.y - S0.y), Cp = { x: (S0.x + E.x) / 2 + sh.curve * dd * 1.4, y: (S0.y + E.y) / 2 - sh.gy * geo.gh * 0.5 };
-    bx = (1 - q) * (1 - q) * S0.x + 2 * (1 - q) * q * Cp.x + q * q * E.x;
-    by = (1 - q) * (1 - q) * S0.y + 2 * (1 - q) * q * Cp.y + q * q * E.y;
+    const fp = flightPath(sh), at = pathAt(fp, q); bx = at.x; by = at.y;
     br = lerp(geo.r0, geo.r0 * 0.42, q); rot = e / 40 * (1 + sh.pw);
-    if (e <= sh.T) shadowAt = [lerp(S0.x, E.x, q), lerp(sh.sy + geo.r0 * 0.75, geo.gyb, q)];
+    if (e <= sh.T) { shadowAt = [bx, lerp(sh.sy + geo.r0 * 0.75, geo.gyb, q)]; G.tail = { sh, e }; }
     else {
-      const k = Math.min(1, (e - sh.T) / 600), kk = ease(k), dirx = E.x - Cp.x, diry = E.y - Cp.y, dl = Math.hypot(dirx, diry) || 1;
-      if (sh.outcome === 'goal') { { const fr = clamp((geo.gyb - E.y) / Math.max(1, sh.sy - E.y), 0.1, 1), vx = dirx, vy = diry * fr; spaceStart(sh.t0, sh.t0 + sh.T, sh.gx, sh.gy, geo.r0 * 0.42, { x: vx, y: vy, v: 2 * Math.hypot(vx, vy) / sh.T }); } rot = sh.T / 40 + k * 3; ba = 0; }
+      G.tail = null;
+      const k = Math.min(1, (e - sh.T) / 600), kk = ease(k), dirx = fp.ux * 100, diry = fp.uy * 100, dl = 100;
+      if (sh.outcome === 'goal') { { const fr = clamp((geo.gyb - E.y) / Math.max(1, sh.sy - E.y), 0.1, 1), vx = fp.ux, vy = fp.uy * fr; spaceStart(sh.t0, sh.t0 + sh.T, sh.gx, sh.gy, geo.r0 * 0.42, { x: vx, y: vy, v: fp.tot / sh.T * Math.hypot(vx, vy) }); } rot = sh.T / 40 + k * 3; ba = 0; }
       else if (sh.outcome === 'wide' || sh.outcome === 'over') { bx = E.x + dirx / dl * 120 * k; by = E.y + diry / dl * 120 * k; br = geo.r0 * lerp(0.42, 0.3, k); ba = 1 - k; }
       else { const side = Math.sign(sh.gx * GW_M - pose.x) || 1; bx = E.x + side * geo.gw * 0.35 * kk; by = E.y + (geo.ballY - E.y) * 0.55 * kk - Math.sin(k * Math.PI) * 40; br = geo.r0 * lerp(0.42, 0.75, kk); rot = sh.T / 40 - k * 4; }
     }
-  } else shadowAt = [bx, by + br * 0.8];
+  } else { shadowAt = [bx, by + br * 0.8]; G.tail = null; }
+  G.focusX = bx;
   if (demo) { ({ x: bx, y: by, r: br, rot, a: ba } = demo.ball); shadowAt = demo.shadow; if (demo.trail.length) drawTrail(demo.trail, demo.trailA); }
   // your opponent's swipe being drawn, before their ball flies
   if (G.rep && !G.shot) { const el = now - G.rep.t0, pts = G.rep.trace.filter(p => p.t <= el); if (pts.length) drawTrail(pts, 1, '#6fd3ff'); }
@@ -4427,6 +4550,9 @@ function frameBody(now) {
   else {
     drawBody(pose, now, blind); drawGoal(now, true);
     if (shadowAt) shadow(shadowAt[0], shadowAt[1], br, 0.38);
+    if (G.tail && !demo) cometTail(G.tail.sh, G.tail.e);
+    // your turn: the ball's spot pulses softly
+    if (G.state === 'ready' && !sw) { const pu = 0.5 + 0.5 * Math.sin(now / 420); g.save(); g.translate(bx, by + br * 0.85); g.scale(1, 0.3); g.strokeStyle = `rgba(205,236,255,${0.18 + 0.27 * pu})`; g.lineWidth = 2.2; g.shadowColor = 'rgba(205,236,255,.9)'; g.shadowBlur = 10; g.beginPath(); g.arc(0, 0, br * (1.7 + 0.15 * pu), 0, 7); g.stroke(); g.restore(); }
     drawBall(bx, by, br, rot, ba);
     if (G.state === 'ready') {
       // shot clock ring around the ball
@@ -4486,7 +4612,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.04-2356';
+  var VERSION = '2026.11.05-0508';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess v' + (window.APP_VERSION || '1.00') + ' · build ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
