@@ -2725,11 +2725,10 @@ function hideMenu() { app.classList.remove('menu-on'); $('#menu').hidden = true;
 const goalieIQ = br => Math.round((br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total + (br === MY ? oppShots() : 0))) / 15);
 const MENU = { res: null, count: null };
 // ---------- version and what changed (each update goes up by 0.01) ----------
-const APP_VERSION = '1.23';
+const APP_VERSION = '1.24';
 const WHATS_NEW = [
-  'A whole new look: Synthwave. A striped sunset sun, a neon city and palm trees',
-  'A night pitch with real markings, chrome posts and a net with depth',
-  'The crowd is the city: its windows light up when you score',
+  'The pink net is gone: the goal is a dark void again and the ball flies off into it',
+  'Still Synthwave: the sunset, the neon city crowd, the night pitch and the chrome posts stay',
 ];
 window.APP_VERSION = APP_VERSION;
 function showWhatsNew() {
@@ -3846,18 +3845,8 @@ function drawPitch(now) {
 function drawGoal(now, front) {
   const { gx0, gyt, gyb, gw, gh } = geo, gx1 = gx0 + gw;
   if (!front) {
-    // inside the goal: dark, with a pink net that has depth: back panel, roof and sides, sagging a little and bulging where a goal hits it
+    // inside the goal: no net, just a dark void the ball flies off into
     g.fillStyle = '#0a0016'; g.fillRect(gx0, gyt, gw, gh);
-    const ins = gw * 0.05, bt = gyt - gh * 0.12, bb = gyb - gh * 0.16, b0 = [gx0 + ins, bb], b1 = [gx0 + ins, bt], b2 = [gx1 - ins, bt], b3 = [gx1 - ins, bb];
-    const hit = G.netHit && now - G.netHit.t0 < 900 ? G.netHit : null, e = hit ? 1 - (now - hit.t0) / 900 : 0;
-    const L = (p, q, t) => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t];
-    const mesh = (A, B, C2, D, n, m, sag, alpha) => {
-      g.strokeStyle = rgba(SW.pink, alpha); g.lineWidth = 0.6;
-      for (let i = 0; i <= n; i++) { const uu = i / n, p = L(A, B, uu), q = L(D, C2, uu); g.beginPath(); for (let k = 0; k <= 12; k++) { const t = k / 12, pt = L(p, q, t); let dy = sag * Math.sin(t * Math.PI); if (hit) dy -= 10 * e * Math.exp(-Math.hypot(pt[0] - hit.x, pt[1] - hit.y) / 40); k ? g.lineTo(pt[0], pt[1] + dy) : g.moveTo(pt[0], pt[1] + dy); } g.stroke(); }
-      for (let k = 0; k <= m; k++) { const t = k / m, p = L(A, D, t), q = L(B, C2, t); g.beginPath(); g.moveTo(p[0], p[1]); g.lineTo(q[0], q[1]); g.stroke(); } };
-    mesh(b0, b1, b2, b3, 8, 30, 2, 0.32);
-    mesh([gx0, gyt], [gx1, gyt], b2, b1, 0, 30, 0, 0.18);
-    mesh([gx0, gyb], [gx0, gyt], b1, b0, 8, 5, 1, 0.2); mesh([gx1, gyb], [gx1, gyt], b2, b3, 8, 5, 1, 0.2);
   } else {
     // the frame sits just OUTSIDE the physics box: the inside edge of each post and of the bar is the wall the Goalie hits
     const lw = Math.max(4, gw * 0.018), o = lw / 2;
@@ -4341,7 +4330,6 @@ function spaceStart(key, t0, gx, gy, r0, dir) {
   // it carries on at the speed you hit it: a hard shot flies off fast and is gone quickly, a soft one drifts away.
   // tau is how quickly it travels away into the distance; at the start it moves across the screen at exactly the speed it arrived
   const T = dir && dir.T ? dir.T : 900, L = Math.max(0, Math.min(v0 * clamp(T * 0.22, 110, 300), geo.gw * 0.45, Math.max(room, geo.gw * 0.08))), tau = clamp(L / Math.max(0.05, v0), 80, 320);
-  { const hp = g2s(gx, gy); G.netHit = { x: hp.x, y: hp.y, t0 }; }
   G.space = { key, t0, gx, gy, r0, ux, uy, L, tau, dur: tau * (SPACE_Z - 1), vx: (A.x + ux * L - geo.gx0) / geo.gw, vy: (geo.gyb - (A.y + uy * L)) / geo.gh };
 }
 // where the ball is on its way out
@@ -4645,7 +4633,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.06-0603';
+  var VERSION = '2026.11.06-0608';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess v' + (window.APP_VERSION || '1.00') + ' · build ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
