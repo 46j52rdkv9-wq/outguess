@@ -2725,11 +2725,11 @@ function hideMenu() { app.classList.remove('menu-on'); $('#menu').hidden = true;
 const goalieIQ = br => Math.round((br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total + (br === MY ? oppShots() : 0))) / 15);
 const MENU = { res: null, count: null };
 // ---------- version and what changed (each update goes up by 0.01) ----------
-const APP_VERSION = '1.27';
+const APP_VERSION = '1.28';
 const WHATS_NEW = [
-  'Inside the goal is a Synthwave void: deep space above a neon grid that slides off to a pink horizon',
-  'The 3D goal is back as a faint neon wireframe, with twinkling stars and the odd shooting star',
-  'A goal lights the void up pink where the ball went in',
+  'A new ground to match the inside of the goal: deep violet with a neon grid',
+  'The grid lines run straight on from the grid inside the goal, and its cyan lines slide slowly away like in there',
+  'The pitch markings, the sun reflection and the light around the ball stay',
 ];
 window.APP_VERSION = APP_VERSION;
 function showWhatsNew() {
@@ -3787,21 +3787,17 @@ function paintBackdrop() {
       x -= side * (w + (2 + rnd() * 3) * u); } }
   // haze where the sky meets the ground
   { const hzG = k.createLinearGradient(0, hz - 20, 0, hz + 40); hzG.addColorStop(0, 'rgba(255,63,208,0)'); hzG.addColorStop(0.5, 'rgba(255,63,208,.45)'); hzG.addColorStop(1, 'rgba(255,63,208,0)'); k.fillStyle = hzG; k.fillRect(0, hz - 20, W, 60); }
-  // ---- the night pitch: mown stripes every 2.5 m, a sunset sheen, a floodlit goalmouth, grass texture ----
-  k.fillStyle = '#16052a'; k.fillRect(0, hz, W, H - hz);
-  for (let z = FAR, i = 0; z < zMax; z += 2.5, i++) { const a = P(-80, z), b = P(80, Math.min(z + 2.5, zMax)); k.fillStyle = i & 1 ? '#2a0a44' : '#1d0634'; k.fillRect(0, a.y, W, b.y - a.y + 0.5); }
-  { const sh = k.createLinearGradient(0, hz, 0, geo.gyb + 120); sh.addColorStop(0, 'rgba(255,90,180,.35)'); sh.addColorStop(1, 'rgba(255,90,180,0)'); k.fillStyle = sh; k.fillRect(0, hz, W, geo.gyb + 120 - hz); }
-  { const p0 = P(0, 4); k.save(); k.translate(p0.x, p0.y); k.scale(1, 0.32); const pg = k.createRadialGradient(0, 0, 0, 0, 0, geo.gw * 0.8); pg.addColorStop(0, 'rgba(255,220,250,.14)'); pg.addColorStop(1, 'rgba(255,220,250,0)'); k.fillStyle = pg; k.fillRect(-W * 2, -W * 2, W * 4, W * 4); k.restore(); }
-  for (let i = 0; i < W * 3; i++) { const y = hz + Math.random() * (H - hz), t = (y - hz) / (H - hz); k.fillStyle = Math.random() < 0.5 ? 'rgba(255,200,255,.04)' : 'rgba(0,0,0,.14)'; k.fillRect(Math.random() * W, y, 0.6 + t, 1 + t * 1.8); }
-  // ---- the middle: a Synthwave grid laid into the grass, the sun reflected in the wet turf, light pools ----
+  // ---- the ground, matching the void inside the goal: deep violet, a pink glow along the far edge, and a neon grid ----
+  { const gg = k.createLinearGradient(0, hz, 0, H); gg.addColorStop(0, '#2a0a44'); gg.addColorStop(clamp((geo.gyb - hz) / (H - hz), 0.01, 0.9), '#1a0638'); gg.addColorStop(clamp((geo.ballY - hz) / (H - hz), 0.3, 0.95), '#0b0220'); gg.addColorStop(1, '#06000e'); k.fillStyle = gg; k.fillRect(0, hz, W, H - hz); }
+  { const hg = k.createLinearGradient(0, hz, 0, geo.gyb + 70); hg.addColorStop(0, 'rgba(255,63,208,.34)'); hg.addColorStop(1, 'rgba(255,63,208,0)'); k.fillStyle = hg; k.fillRect(0, hz, W, geo.gyb + 70 - hz); }
   { const yG = geo.gyb, yN = Math.min(H, geo.ballY + geo.r0 * 2.5);
     k.save(); k.beginPath(); k.rect(0, hz, W, H - hz); k.clip(); k.globalCompositeOperation = 'lighter';
-    // lines running away from you, all meeting at the one vanishing point behind the goal
-    for (let X = -12; X <= 12.01; X += 0.6) { const a = P(X, FAR), b = P(X, zMax), lg = k.createLinearGradient(0, a.y, 0, b.y);
-      lg.addColorStop(0, 'rgba(255,63,208,0)'); lg.addColorStop(0.25, 'rgba(255,63,208,.12)'); lg.addColorStop(1, 'rgba(255,63,208,.24)');
+    // pink lines running away from you, all meeting at the one vanishing point behind the goal. They are spaced
+    // to carry straight on from the grid inside the goal where the two meet at the goal line
+    const step = 0.11 * GW_M;
+    for (let i = -24; i <= 24; i++) { const X = i * step, a = P(X, FAR), b = P(X, zMax), lg = k.createLinearGradient(0, a.y, 0, b.y);
+      lg.addColorStop(0, 'rgba(255,63,208,0)'); lg.addColorStop(0.3, 'rgba(255,63,208,.2)'); lg.addColorStop(1, 'rgba(255,63,208,.34)');
       k.strokeStyle = lg; k.lineWidth = 1; k.beginPath(); k.moveTo(a.x, a.y); k.lineTo(b.x, b.y); k.stroke(); }
-    // cross lines, closer together as they go away
-    for (let z = FAR + 1; z < zMax; z += 1.2) { const y = P(0, z).y, t = clamp((y - hz) / (H - hz), 0, 1); k.strokeStyle = `rgba(56,242,255,${0.03 + 0.09 * t})`; k.lineWidth = 0.6 + t; k.beginPath(); k.moveTo(0, y); k.lineTo(W, y); k.stroke(); }
     // the sun's reflection: a warm column under the goal, broken into ripples like wet grass
     const SG = sunGeo(), rw = SG.r * 0.95;
     { const cg = k.createRadialGradient(W / 2, yG, 0, W / 2, yG, rw * 1.3); cg.addColorStop(0, 'rgba(255,150,120,.22)'); cg.addColorStop(1, 'rgba(255,90,170,0)'); k.save(); k.translate(0, yG); k.scale(1, 0.55); k.translate(0, -yG); k.fillStyle = cg; k.fillRect(0, yG, W, rw * 2.4); k.restore(); }
@@ -3824,6 +3820,14 @@ function paintBackdrop() {
   const vg = k.createRadialGradient(cx, H * 0.45, Math.min(W, H) * 0.3, cx, H * 0.45, Math.hypot(W, H) * 0.62); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.45)'); k.fillStyle = vg; k.fillRect(0, 0, W, H);
 }
 const FLASH = [];
+// the ground's cyan cross lines, drawn every frame so they slide slowly away toward the goal, the same as inside it
+function drawFloor(now) {
+  const cam = pitchCam(), P = cam.P, zMax = Math.min(cam.Z0 - 0.3, cam.zdAtY(H + 40)), hz = P(0, -6).y, gap = 1.5, ph = (now / 2600) % 1;
+  g.save(); g.globalCompositeOperation = 'lighter'; g.lineCap = 'butt';
+  for (let z = -6 + gap * (1 - ph); z < zMax; z += gap) { const y = P(0, z).y, t = clamp((y - geo.gyb) / (H - geo.gyb), 0, 1);
+    g.strokeStyle = `rgba(56,242,255,${y < geo.gyb ? 0.07 : 0.07 + 0.26 * t})`; g.lineWidth = 0.8 + t * 1.2; g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+  g.restore();
+}
 // ---------- the crowd: the city's lit windows. They twinkle, ripple floor by floor on a goal, and beat on match point ----------
 const CHEERS = ['ripple', 'ripple', 'flash', 'sweep', 'pulse'];
 function cheer() {
@@ -3852,6 +3856,7 @@ function drawCity(now) {
 function drawPitch(now) {
   if (!bgC || bgC.width !== Math.round(W * DPR)) paintBackdrop();
   if (bgC) g.drawImage(bgC, 0, 0, W, H); else { g.fillStyle = C.night; g.fillRect(0, 0, W, H); }
+  drawFloor(now);
   drawCity(now);
   // the seven ball spots (not on the home screen, where the ball sits further up)
   const by = geo.ballY;
@@ -4699,7 +4704,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.06-0620';
+  var VERSION = '2026.11.06-0625';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess v' + (window.APP_VERSION || '1.00') + ' · build ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
