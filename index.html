@@ -2725,9 +2725,11 @@ function hideMenu() { app.classList.remove('menu-on'); $('#menu').hidden = true;
 const goalieIQ = br => Math.round((br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total + (br === MY ? oppShots() : 0))) / 15);
 const MENU = { res: null, count: null };
 // ---------- version and what changed (each update goes up by 0.01) ----------
-const APP_VERSION = '1.25';
+const APP_VERSION = '1.26';
 const WHATS_NEW = [
-  'No more dark shadow under the Goalie: only a soft glow of its colour on the grass',
+  'A better middle: a Synthwave grid laid into the pitch, running off to the sunset',
+  "The sun's reflection shimmers on the wet grass under the goal",
+  'A soft pool of light around the ball spot',
 ];
 window.APP_VERSION = APP_VERSION;
 function showWhatsNew() {
@@ -3791,6 +3793,24 @@ function paintBackdrop() {
   { const sh = k.createLinearGradient(0, hz, 0, geo.gyb + 120); sh.addColorStop(0, 'rgba(255,90,180,.35)'); sh.addColorStop(1, 'rgba(255,90,180,0)'); k.fillStyle = sh; k.fillRect(0, hz, W, geo.gyb + 120 - hz); }
   { const p0 = P(0, 4); k.save(); k.translate(p0.x, p0.y); k.scale(1, 0.32); const pg = k.createRadialGradient(0, 0, 0, 0, 0, geo.gw * 0.8); pg.addColorStop(0, 'rgba(255,220,250,.14)'); pg.addColorStop(1, 'rgba(255,220,250,0)'); k.fillStyle = pg; k.fillRect(-W * 2, -W * 2, W * 4, W * 4); k.restore(); }
   for (let i = 0; i < W * 3; i++) { const y = hz + Math.random() * (H - hz), t = (y - hz) / (H - hz); k.fillStyle = Math.random() < 0.5 ? 'rgba(255,200,255,.04)' : 'rgba(0,0,0,.14)'; k.fillRect(Math.random() * W, y, 0.6 + t, 1 + t * 1.8); }
+  // ---- the middle: a Synthwave grid laid into the grass, the sun reflected in the wet turf, light pools ----
+  { const yG = geo.gyb, yN = Math.min(H, geo.ballY + geo.r0 * 2.5);
+    k.save(); k.beginPath(); k.rect(0, hz, W, H - hz); k.clip(); k.globalCompositeOperation = 'lighter';
+    // lines running away from you, all meeting at the one vanishing point behind the goal
+    for (let X = -12; X <= 12.01; X += 0.6) { const a = P(X, FAR), b = P(X, zMax), lg = k.createLinearGradient(0, a.y, 0, b.y);
+      lg.addColorStop(0, 'rgba(255,63,208,0)'); lg.addColorStop(0.25, 'rgba(255,63,208,.12)'); lg.addColorStop(1, 'rgba(255,63,208,.24)');
+      k.strokeStyle = lg; k.lineWidth = 1; k.beginPath(); k.moveTo(a.x, a.y); k.lineTo(b.x, b.y); k.stroke(); }
+    // cross lines, closer together as they go away
+    for (let z = FAR + 1; z < zMax; z += 1.2) { const y = P(0, z).y, t = clamp((y - hz) / (H - hz), 0, 1); k.strokeStyle = `rgba(56,242,255,${0.03 + 0.09 * t})`; k.lineWidth = 0.6 + t; k.beginPath(); k.moveTo(0, y); k.lineTo(W, y); k.stroke(); }
+    // the sun's reflection: a warm column under the goal, broken into ripples like wet grass
+    const SG = sunGeo(), rw = SG.r * 0.95;
+    { const cg = k.createRadialGradient(W / 2, yG, 0, W / 2, yG, rw * 1.3); cg.addColorStop(0, 'rgba(255,150,120,.22)'); cg.addColorStop(1, 'rgba(255,90,170,0)'); k.save(); k.translate(0, yG); k.scale(1, 0.55); k.translate(0, -yG); k.fillStyle = cg; k.fillRect(0, yG, W, rw * 2.4); k.restore(); }
+    for (let y = yG + 3, i = 0; y < yN; i++) { const t = (y - yG) / (yN - yG), h = 1.2 + t * 5, w = rw * (1 - t * 0.45) * (0.75 + 0.25 * Math.sin(i * 2.1)), a = 0.4 * (1 - t) ** 1.3;
+      const rg = k.createLinearGradient(W / 2 - w, 0, W / 2 + w, 0); rg.addColorStop(0, 'rgba(255,90,170,0)'); rg.addColorStop(0.5, `rgba(255,${Math.round(190 - 110 * t)},${Math.round(90 + 80 * t)},${a})`); rg.addColorStop(1, 'rgba(255,90,170,0)');
+      k.fillStyle = rg; k.fillRect(W / 2 - w, y, w * 2, h); y += h + 2 + t * 6; }
+    // a pool of light around the ball spot
+    { k.save(); k.translate(W / 2, geo.ballY + geo.r0 * 0.7); k.scale(1, 0.3); const bg2 = k.createRadialGradient(0, 0, 0, 0, 0, geo.gw * 0.55); bg2.addColorStop(0, 'rgba(56,242,255,.16)'); bg2.addColorStop(1, 'rgba(56,242,255,0)'); k.fillStyle = bg2; k.fillRect(-W, -W * 2, W * 2, W * 4); k.restore(); }
+    k.restore(); }
   // ---- the markings, glowing: goal line, six-yard box, penalty box and arc, the spot ----
   const seg = (pts, raw) => { const p = new Path2D(); pts.forEach((q, i) => { const s2 = P(raw ? q[0] : q[0] * PITCH_MX, Math.min(q[1], zMax)); i ? p.lineTo(s2.x, s2.y) : p.moveTo(s2.x, s2.y); }); return p; };
   const col = '#fff4fd';
@@ -4631,7 +4651,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.06-0612';
+  var VERSION = '2026.11.06-0616';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess v' + (window.APP_VERSION || '1.00') + ' · build ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
