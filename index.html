@@ -2725,10 +2725,9 @@ function hideMenu() { app.classList.remove('menu-on'); $('#menu').hidden = true;
 const goalieIQ = br => Math.round((br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total + (br === MY ? oppShots() : 0))) / 15);
 const MENU = { res: null, count: null };
 // ---------- version and what changed (each update goes up by 0.01) ----------
-const APP_VERSION = '1.24';
+const APP_VERSION = '1.25';
 const WHATS_NEW = [
-  'The pink net is gone: the goal is a dark void again and the ball flies off into it',
-  'Still Synthwave: the sunset, the neon city crowd, the night pitch and the chrome posts stay',
+  'No more dark shadow under the Goalie: only a soft glow of its colour on the grass',
 ];
 window.APP_VERSION = APP_VERSION;
 function showWhatsNew() {
@@ -4201,9 +4200,8 @@ function drawBody(pose, now, blind) {
   const s = geo.gw / GW_M, m = p => g2s(p[0] / GW_M, p[1] / GH_M), P = pose.pts, Q = {};
   for (const k in P) Q[k] = m(P[k]);
   const glow = KIT_GLOW[kit];
-  // its shadow, and a soft glow on the grass under it
+  // no shadow: just a soft glow of its colour on the grass under it
   const sp = m([pose.x, 0]), sw0 = s * (0.42 + Math.abs(Math.sin(pose.th)) * 0.55);
-  g.fillStyle = rgba(C.night, 0.5); g.beginPath(); g.ellipse(sp.x, geo.gyb + 2, sw0, 4.5, 0, 0, 7); g.fill();
   const gg = g.createRadialGradient(sp.x, geo.gyb, 0, sp.x, geo.gyb, sw0 * 1.6); gg.addColorStop(0, `rgba(${glow},0.16)`); gg.addColorStop(1, `rgba(${glow},0)`);
   g.fillStyle = gg; g.beginPath(); g.ellipse(sp.x, geo.gyb, sw0 * 1.6, 9, 0, 0, 7); g.fill();
   { const rg = g.createRadialGradient(sp.x, geo.gyb + 4, 0, sp.x, geo.gyb + 4, s * 1.1); rg.addColorStop(0, `rgba(${glow},0.13)`); rg.addColorStop(1, `rgba(${glow},0)`); g.save(); g.translate(sp.x, geo.gyb + 4); g.scale(1, 0.22); g.translate(-sp.x, -(geo.gyb + 4)); g.fillStyle = rg; g.beginPath(); g.arc(sp.x, geo.gyb + 4, s * 1.1, 0, 7); g.fill(); g.restore(); }
@@ -4633,7 +4631,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.06-0608';
+  var VERSION = '2026.11.06-0612';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess v' + (window.APP_VERSION || '1.00') + ' · build ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
