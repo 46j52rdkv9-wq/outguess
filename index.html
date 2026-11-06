@@ -2725,11 +2725,11 @@ function hideMenu() { app.classList.remove('menu-on'); $('#menu').hidden = true;
 const goalieIQ = br => Math.round((br.m2.trainMs / 60000 + (br === SB ? SB.bot.shots : br.total + (br === MY ? oppShots() : 0))) / 15);
 const MENU = { res: null, count: null };
 // ---------- version and what changed (each update goes up by 0.01) ----------
-const APP_VERSION = '1.26';
+const APP_VERSION = '1.27';
 const WHATS_NEW = [
-  'A better middle: a Synthwave grid laid into the pitch, running off to the sunset',
-  "The sun's reflection shimmers on the wet grass under the goal",
-  'A soft pool of light around the ball spot',
+  'Inside the goal is a Synthwave void: deep space above a neon grid that slides off to a pink horizon',
+  'The 3D goal is back as a faint neon wireframe, with twinkling stars and the odd shooting star',
+  'A goal lights the void up pink where the ball went in',
 ];
 window.APP_VERSION = APP_VERSION;
 function showWhatsNew() {
@@ -4372,7 +4372,7 @@ function spaceLayers() {
       if (r > 1.1) { const gr = c.createRadialGradient(x, y, 0, x, y, r * 3); gr.addColorStop(0, `rgba(${t},${a * 0.5})`); gr.addColorStop(1, `rgba(${t},0)`); c.fillStyle = gr; c.beginPath(); c.arc(x, y, r * 3, 0, 7); c.fill(); }
       c.fillStyle = `rgba(${t},${a})`; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); }
     return { cv, w, h }; };
-  const k = Math.max(0.7, gw / 420), white = ['235,242,255'], mix = ['235,242,255', '200,220,255', '255,236,214'];
+  const k = Math.max(0.7, gw / 420), white = ['255,236,250'], mix = ['255,236,250', '255,140,225', '140,240,255'];
   SPACE_L = { key, layers: [
     { ...mk(Math.round(gw * gh / 700), 0.35 * k, 0.75 * k, 0.25, 0.6, white), par: 0.012, drift: 0.0015, tw: 0.12 },
     { ...mk(Math.round(gw * gh / 2200), 0.6 * k, 1.1 * k, 0.4, 0.8, mix), par: 0.03, drift: 0.003, tw: 0.2 },
@@ -4380,7 +4380,55 @@ function spaceLayers() {
   ] };
   return SPACE_L;
 }
-function drawSpace(now) { const S0 = G.space; if (S0 && now - S0.t0 > S0.dur + 900) G.space = null; }
+// inside the goal: a Synthwave void. Deep space above a neon grid floor that runs off to a far pink horizon,
+// stars in three layers, now and then a shooting star, and the goal's 3D frame as a faint neon wireframe
+function drawSpace(now) {
+  const S0 = G.space, el = S0 ? now - S0.t0 : 1e9; if (S0 && el > S0.dur + 900) G.space = null;
+  const boost = el >= 0 && el < 2600 ? clamp(el / 400, 0, 1) * clamp(1 - (el - 1900) / 700, 0, 1) : 0;
+  const { gx0, gyt, gyb, gw, gh } = geo, gx1 = gx0 + gw, cx = gx0 + gw / 2, L = spaceLayers();
+  const yv = gyb - gh * 0.3; // the far horizon inside the goal
+  g.save(); g.beginPath(); g.rect(gx0, gyt, gw, gh); g.clip();
+  // the dark: near-black at the top, deep violet with a hint of blue toward the horizon
+  { const bg = g.createLinearGradient(0, gyt, 0, gyb); bg.addColorStop(0, '#04000a'); bg.addColorStop(0.62, '#130a36'); bg.addColorStop(0.7, '#2a0a44'); bg.addColorStop(1, '#0b0220'); g.fillStyle = bg; g.fillRect(gx0, gyt, gw, gh); }
+  // stars, drifting a little with where you're looking
+  const fx = (S0 ? g2s(S0.gx, S0.gy).x : G.focusX != null ? G.focusX : cx) - cx;
+  g.save(); g.beginPath(); g.rect(gx0, gyt, gw, yv - gyt); g.clip();
+  for (const ly of L.layers) {
+    const ox = (now * ly.drift) % ly.w, px = -fx * ly.par, a = (1 - ly.tw / 2 + ly.tw / 2 * Math.sin(now / 1300 + ly.par * 100)) * (0.7 + 0.3 * boost);
+    g.globalAlpha = clamp(a, 0, 1); for (const dx of [0, ly.w]) g.drawImage(ly.cv, gx0 - gw * 0.15 + px - ox + dx, gyt - gh * 0.15, ly.w, ly.h);
+  }
+  g.globalAlpha = 1; g.restore();
+  // the far horizon glows pink, like the sunset carries on in there
+  { const hg = g.createLinearGradient(0, yv - gh * 0.16, 0, yv + gh * 0.1); hg.addColorStop(0, 'rgba(255,63,208,0)'); hg.addColorStop(0.62, `rgba(255,63,208,${0.32 + 0.25 * boost})`); hg.addColorStop(1, 'rgba(255,63,208,0)'); g.fillStyle = hg; g.fillRect(gx0, yv - gh * 0.16, gw, gh * 0.26); }
+  // the grid floor: lines meeting at the middle of the horizon, cross lines sliding slowly away into the distance
+  g.lineWidth = 1;
+  for (let i = -10; i <= 10; i++) { const xb = cx + i * gw * 0.11, a = 0.32 * (1 - Math.abs(i) / 12);
+    const lg = g.createLinearGradient(0, yv, 0, gyb); lg.addColorStop(0, 'rgba(255,63,208,0)'); lg.addColorStop(1, `rgba(255,63,208,${a})`); g.strokeStyle = lg;
+    g.beginPath(); g.moveTo(cx + i * gw * 0.012, yv); g.lineTo(xb, gyb); g.stroke(); }
+  const ph = (now / 2600) % 1;
+  for (let j = 0; j < 7; j++) { const d = (j + 1 - ph) / 7, y = yv + (gyb - yv) * d * d; if (y <= yv + 1) continue; g.strokeStyle = `rgba(56,242,255,${0.05 + 0.3 * d * d})`; g.beginPath(); g.moveTo(gx0, y); g.lineTo(gx1, y); g.stroke(); }
+  // a goal lights up the void: a pink-violet bloom where the ball went, and a ring of light spreading out
+  if (boost > 0) { const V = g2s(clamp(S0.vx, 0.15, 0.85), clamp(S0.vy, 0.2, 0.8)), neb = (x, y, r, rgb, a) => { const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(${rgb},${a})`); gr.addColorStop(1, `rgba(${rgb},0)`); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); };
+    neb(V.x, V.y, gw * 0.42, '170,40,200', 0.28 * boost); neb(V.x + gw * 0.12, V.y - gh * 0.15, gw * 0.25, '56,200,255', 0.14 * boost); }
+  if (S0 && el >= 0 && el < 1400) { const A = g2s(S0.gx, S0.gy), k = el / 1400, R = gw * 0.08 + gw * 0.9 * (1 - Math.pow(1 - k, 2)), w = gw * 0.05;
+    const gr = g.createRadialGradient(A.x, A.y, Math.max(0, R - w), A.x, A.y, R + w); gr.addColorStop(0, 'rgba(255,150,230,0)'); gr.addColorStop(0.5, `rgba(255,150,230,${0.24 * (1 - k)})`); gr.addColorStop(1, 'rgba(255,150,230,0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(A.x, A.y, R + w, 0, 7); g.fill(); }
+  // now and then a shooting star
+  if (!G.shoot && now > (G.shootNext || (G.shootNext = now + 5000 + Math.random() * 7000))) G.shoot = { t0: now, x: gx0 + gw * (0.15 + Math.random() * 0.7), y: gyt + gh * (0.08 + Math.random() * 0.25), dx: (Math.random() < 0.5 ? -1 : 1) * gw * (0.35 + Math.random() * 0.2), dy: gh * (0.12 + Math.random() * 0.12) };
+  if (G.shoot) { const T = (now - G.shoot.t0) / 750; if (T >= 1) { G.shoot = null; G.shootNext = now + 9000 + Math.random() * 9000; }
+    else { const h = G.shoot, e = 1 - Math.pow(1 - T, 2), hx = h.x + h.dx * e, hy = h.y + h.dy * e, tx = h.x + h.dx * Math.max(0, e - 0.22), ty = h.y + h.dy * Math.max(0, e - 0.22), fa = Math.sin(T * Math.PI);
+      const gr = g.createLinearGradient(tx, ty, hx, hy); gr.addColorStop(0, 'rgba(255,200,240,0)'); gr.addColorStop(1, `rgba(255,236,250,${0.85 * fa})`); g.strokeStyle = gr; g.lineWidth = 1.6; g.lineCap = 'round'; g.beginPath(); g.moveTo(tx, ty); g.lineTo(hx, hy); g.stroke(); } }
+  // the crossbar throws a little shade down the top of the goal
+  { const sb = g.createLinearGradient(0, gyt, 0, gyt + gh * 0.2); sb.addColorStop(0, 'rgba(0,0,0,.5)'); sb.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = sb; g.fillRect(gx0, gyt, gw, gh * 0.2); }
+  g.restore();
+  // the goal's 3D frame as a faint neon wireframe: the back posts and bar, and the edges of the roof and sides
+  const inset = gw * 0.05, bt = gyt + gh * 0.1, bb = gyb - gh * 0.16;
+  const wire = () => { g.beginPath(); g.moveTo(gx0, gyt); g.lineTo(gx0 + inset, bt); g.lineTo(gx1 - inset, bt); g.lineTo(gx1, gyt); g.moveTo(gx0 + inset, bt); g.lineTo(gx0 + inset, bb); g.lineTo(gx0, gyb); g.moveTo(gx1 - inset, bt); g.lineTo(gx1 - inset, bb); g.lineTo(gx1, gyb); g.moveTo(gx0 + inset, bb); g.lineTo(gx1 - inset, bb); };
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  g.strokeStyle = 'rgba(255,63,208,.12)'; g.lineWidth = 4; wire(); g.stroke();
+  g.strokeStyle = 'rgba(255,170,235,.5)'; g.lineWidth = 1; g.shadowColor = 'rgba(255,63,208,.9)'; g.shadowBlur = 6; wire(); g.stroke(); g.shadowBlur = 0;
+  g.lineCap = 'butt'; g.lineJoin = 'miter';
+}
 function drawSpaceBall(now, rot) {
   const B = spaceBall(now); if (!B || B.a <= 0.01) return;
   const { gx0, gyt, gw, gh } = geo;
@@ -4651,7 +4699,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 <script>
 // ---------- phone app: works offline, and updates itself when you're back on the menu ----------
 (function () {
-  var VERSION = '2026.11.06-0616';
+  var VERSION = '2026.11.06-0620';
   try { var p = document.createElement('p'); p.className = 'appver'; p.textContent = 'Outguess v' + (window.APP_VERSION || '1.00') + ' · build ' + VERSION; document.querySelector('#title .inner').appendChild(p); } catch (e) {}
   if (!('serviceWorker' in navigator)) return;
   var pending = null, reloading = false, toast = null;
